@@ -6,7 +6,7 @@ import { Servido } from "./servido";
 export function constructServido<S extends Servido, A extends any[]>(props: ConstructServidoProps<S, A>): S;
 export function constructServido<S extends Servido>(props: ConstructServidoProps<S, []>): S;
 export function constructServido(props: ConstructServidoProps<Servido, any[]>) {
-    if (props.context != null) {
+    if (props.context != null && props.context !== ServidoContext.default) {
         // allow for requiring inside the constructor
         Object.defineProperty(props.servido.prototype, Servido.KEY.CONTEXT, {
             value: props.context,
@@ -34,7 +34,10 @@ export function constructServido(props: ConstructServidoProps<Servido, any[]>) {
         });
     }
 
-    if (props.context != null) {
+    if (props.context != null && props.context !== ServidoContext.default) {
+        // remove from prototype as it now will be defined in the instance
+        delete props.servido.prototype[Servido.KEY.CONTEXT];
+
         Object.defineProperty(servido, Servido.KEY.CONTEXT, {
             value: props.context,
             configurable: false,
