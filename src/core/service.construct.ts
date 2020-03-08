@@ -17,7 +17,7 @@ export function constructService(props: ConstructServiceProps<Service, any[]>) {
 
     let service: Service;
 
-    if (props.args) {
+    if (props.args && props.args.length) {
         service = new props.service(...props.args);
     } else {
         service = new props.service();
@@ -44,6 +44,8 @@ export function constructService(props: ConstructServiceProps<Service, any[]>) {
             writable: false,
             enumerable: false,
         });
+    } else {
+        delete service[Service.KEY.CONTEXT];
     }
 
     return service;

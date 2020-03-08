@@ -1,15 +1,14 @@
+/* eslint-disable max-len */
+/* eslint-disable prettier/prettier */
 import { requireService } from "./service.require";
+import { ServiceContext } from './service.context';
 import { Class, ServiceIdentifier } from "./service.types";
-import { ServiceContext } from "./service.context";
 import { forgoService, clearDependent } from "./service.forgo";
 
 /** Describes the interface of a service, but does not provide or utilize any of the described functionalities by itself.
  * In order to make use of a service, it must be required by a dependent, which can be done by a different context using
  * its own `Service.require(Service)`. */
 export class Service {
-    private _$deconstructFns?: Set<Function>;
-    private __context__?: ServiceContext;
-
     /** The generated identifier for the instance. */
     protected $id?: ServiceIdentifier;
 
@@ -22,38 +21,44 @@ export class Service {
     protected require<S extends Service>(service: Class<S, []> | S): S;
     protected require<S extends Service, A extends any[]>(service: Class<S, A> | S, ...arguments_: A): S;
     protected require(service: Class<Service> | Service, ...args: any[]): any {
-        return requireService({ service, context: this.__context__, dependent: this, args });
+        return requireService({ service, context: this[Service.KEY.CONTEXT], dependent: this, args });
     }
 
     /** Forgos a Service that has previously been required. */
     protected forgo<S extends Service>(service: S) {
-        return forgoService({ service, context: this.__context__, dependent: this });
+        return forgoService({ service, context: this[Service.KEY.CONTEXT], dependent: this });
     }
 
     /** Contains the set of functions that should be called when deconstructing the service. */
     protected get deconstructFns() {
-        if (!this._$deconstructFns) {
-            this._$deconstructFns = new Set();
+        if (!this[Service.KEY.DECONSTRUCT_FNS]) {
+            Object.defineProperty(this, Service.KEY.DECONSTRUCT_FNS, { value: new Set(), writable: false, configurable: false, enumerable: false })
         }
 
-        return this._$deconstructFns;
+        return this[Service.KEY.DECONSTRUCT_FNS];
     }
+
+    private $context?: ServiceContext;
+    private $deconstructFns?: Set<Function>;
 
     /** Specifies private properties. */
     static KEY = {
         /** If a `ServiceIdentifier` could be generated when constructing the service, that will be added to the constructed service using this key. */
         ID: "$id" as "$id",
         /** If a context other than the default context was used for the requireing of the service, that will be defined using this key. */
-        CONTEXT: "__context__" as "__context__",
+        CONTEXT: "$context" as "$context",
+        DECONSTRUCT_FNS: "$deconstructFns" as "$deconstructFns",
     };
 
     static deconstruct(service: Service) {
-        if (service._$deconstructFns) {
-            for (const deconstructFn of service._$deconstructFns.values()) {
+        const deconstructFns = service[Service.KEY.DECONSTRUCT_FNS];
+        
+        if (deconstructFns) {
+            for (const deconstructFn of deconstructFns.values()) {
                 deconstructFn();
             }
 
-            service._$deconstructFns.clear();
+            deconstructFns.clear();
         }
 
         service.deconstruct();
