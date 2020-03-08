@@ -1,7 +1,7 @@
 import { requireServido } from "./servido.require";
 import { Class, ServidoIdentifier } from "./servido.types";
 import { ServidoContext } from "./servido.context";
-import { forgoServido } from "./servido.forgo";
+import { forgoServido, clearDependent } from "./servido.forgo";
 
 /** Describes the interface of a servido, but does not provide or utilize any of the described functionalities by itself.
  * In order to make use of a servido, it must be required by a dependent, which can be done by a different context using
@@ -57,6 +57,8 @@ export class Servido {
         }
 
         servido.deconstruct();
+
+        clearDependent({ dependent: servido, context: servido[Servido.KEY.CONTEXT] });
     }
 
     static require<S extends Servido>(servido: Class<S, []> | S): S;

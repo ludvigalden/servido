@@ -76,16 +76,6 @@ export function forgoServido<S extends Servido>(props: ForgoServidoProps<S>) {
         }
 
         Servido.deconstruct(props.servido);
-
-        const servidoRequirements = context.requirements.get(props.servido);
-
-        if (servidoRequirements) {
-            [...servidoRequirements].forEach((servido) => {
-                forgoServido({ ...props, servido, dependent: props.servido });
-            });
-
-            context.requirements.delete(props.servido);
-        }
     }
 }
 
