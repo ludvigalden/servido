@@ -34,7 +34,6 @@
 		"build": "cross-env NODE_ENV=production tsdx build --format=cjs,esm,umd",
 		"test": "tsdx test",
 		"lint": "tsdx lint",
-		"prepare": "tsdx build",
 		"precommit": "lint-staged",
 		"prepublish": "npm run build && cp ./{package.json,README.md,LICENSE} ./dist",
 		"publish-canary": "lerna version prerelease --preid canary --force-publish && release --pre",
