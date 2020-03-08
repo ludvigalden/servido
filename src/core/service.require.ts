@@ -4,7 +4,7 @@ import { constructService } from "./service.construct";
 import { ServiceContext } from "./service.context";
 import { Service } from "./service";
 import { Class, ServiceDependent, ServiceIdentifier } from "./service.types";
-import { isClass, serviceIdentifier, getClassThunkConstructor } from "./service.util";
+import { isClass, serviceIdentifier, getClassThunkConstructor, filterErrorStack } from "./service.util";
 
 export function requireService<S extends Service, A extends any[]>(props: RequireServiceProps<S, A>): S;
 export function requireService<S extends Service>(props: RequireServiceProps<S, []>): S;
@@ -13,7 +13,7 @@ export function requireService(props: RequireServiceProps<Service, any[]>) {
 
     if (!isClass(props.service)) {
         // the service was passed as an instance and params are OK
-        if (id == null || props.service[Service.KEY.ID] !== id) {
+        if (id != null && props.service[Service.KEY.ID] !== id) {
             // the passed parameters do not match the instance, get prototype and go forward as if the prototype was passed
             props.service = getClassThunkConstructor(props.service) as Class<Service, any[]>;
         } else {
@@ -60,9 +60,11 @@ export function requireService(props: RequireServiceProps<Service, any[]>) {
             }
 
             if (error instanceof RangeError) {
-                throw new CircularDependencyError(`${props.service.name} is requiring one or more services that require itself`);
+                throw filterErrorStack(
+                    new CircularDependencyError(`${props.service.name} is requiring one or more services that require itself`),
+                );
             } else {
-                throw error;
+                throw filterErrorStack(error);
             }
         }
     }
@@ -87,7 +89,14 @@ export function requireService(props: RequireServiceProps<Service, any[]>) {
             if (!context.constructedAsync.has(constructed)) {
                 const promise = Promise.resolve().then(() => constructPromise);
                 context.constructedAsync.set(constructed, promise);
-                const constructPromise = ServiceAsync.constructAsync(constructed);
+
+                let constructPromise: Promise<void> | void;
+
+                try {
+                    constructPromise = ServiceAsync.constructAsync(constructed);
+                } catch (error) {
+                    throw filterErrorStack(error);
+                }
             }
         }
 

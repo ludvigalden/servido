@@ -1,6 +1,15 @@
 import React from "react";
 
-import { Service, serviceIdentifier, isClass, constructService, ServiceIdentifier, Class, getClassThunkConstructor } from "../core";
+import {
+    Service,
+    serviceIdentifier,
+    isClass,
+    constructService,
+    ServiceIdentifier,
+    Class,
+    getClassThunkConstructor,
+    filterErrorStack,
+} from "../core";
 
 import { useServiceContext, reactServiceContexts } from "./service-react.context";
 import { useClearedMemo } from "./service-react.hooks";
@@ -11,10 +20,9 @@ export function ServiceProvider<S extends Service, A extends any[]>(
 ): JSX.Element;
 export function ServiceProvider<S extends Service>(props: React.PropsWithChildren<ServiceProviderPropsWithArgs<S, any[]>>) {
     const context = useServiceContext();
+    const identifier = serviceIdentifier(props.args);
 
     const serviceReactContext = React.useMemo<React.Context<S>>(() => {
-        const identifier = props.args ? serviceIdentifier(props.args) : undefined;
-
         const constructor = getClassThunkConstructor(props.service);
         let serviceReactContexts: Map<ServiceIdentifier, React.Context<S> | React.Context<undefined> | undefined>;
 
@@ -37,20 +45,26 @@ export function ServiceProvider<S extends Service>(props: React.PropsWithChildre
         }
 
         return serviceReactContext as React.Context<S>;
-    }, []);
+    }, [identifier, props.service]);
 
-    const service = useClearedMemo<{ constructed: S; service: undefined } | { constructed: undefined; service: S }>(
-        () =>
-            isClass(props.service)
-                ? { constructed: constructService<S, any[]>({ service: props.service, args: props.args, context }), service: undefined }
-                : { constructed: undefined, service: props.service },
-        ({ constructed }) => {
-            if (constructed) {
-                Service.deconstruct(constructed);
-            }
-        },
-        [props.service, ...(props.args || [])],
-    );
+    let service: { constructed: S; service: undefined } | { constructed: undefined; service: S };
+
+    try {
+        service = useClearedMemo<{ constructed: S; service: undefined } | { constructed: undefined; service: S }>(
+            () =>
+                isClass(props.service)
+                    ? { constructed: constructService<S, any[]>({ service: props.service, args: props.args, context }), service: undefined }
+                    : { constructed: undefined, service: props.service },
+            ({ constructed }) => {
+                if (constructed) {
+                    Service.deconstruct(constructed);
+                }
+            },
+            [props.service, ...(props.args || [])],
+        );
+    } catch (error) {
+        throw filterErrorStack(error);
+    }
 
     return React.createElement(serviceReactContext.Provider, {
         value: (service.constructed || service.service) as S,

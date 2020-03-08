@@ -1,6 +1,6 @@
 import React from "react";
 
-import { Service, Class, requireService, serviceIdentifier, ServiceDependent, forgoService } from "../core";
+import { Service, Class, requireService, serviceIdentifier, ServiceDependent, forgoService, filterErrorStack } from "../core";
 
 import { useServiceContext, reactServiceContexts } from "./service-react.context";
 
@@ -35,36 +35,40 @@ export function useService<S extends Service>(service: Class<S> | S, ...args: an
 
     const context = useServiceContext();
 
-    const current = useClearedMemo(
-        () => {
-            let next: { dependent: ServiceDependent | undefined; service: S };
+    try {
+        const current = useClearedMemo(
+            () => {
+                let next: { dependent: ServiceDependent | undefined; service: S };
 
-            if (reactContextService) {
-                next = { dependent: undefined, service: reactContextService };
-            } else {
-                const dependent = uniqueServiceDependent();
+                if (reactContextService) {
+                    next = { dependent: undefined, service: reactContextService };
+                } else {
+                    const dependent = uniqueServiceDependent();
 
-                next = {
-                    dependent,
-                    service: requireService({ service, dependent, context }),
-                };
-            }
+                    next = {
+                        dependent,
+                        service: requireService({ service, dependent, context, args }),
+                    };
+                }
 
-            return next;
-        },
-        (previous) => {
-            if (!previous) {
-                return;
-            }
+                return next;
+            },
+            (previous) => {
+                if (!previous) {
+                    return;
+                }
 
-            if (previous.dependent) {
-                forgoService({ service: previous.service, dependent: previous.dependent });
-            }
-        },
-        [service, identifier, context, reactContextService],
-    );
+                if (previous.dependent) {
+                    forgoService({ service: previous.service, dependent: previous.dependent });
+                }
+            },
+            [service, identifier, context, reactContextService],
+        );
 
-    return current.service;
+        return current.service;
+    } catch (error) {
+        throw filterErrorStack(error);
+    }
 }
 
 const INITIAL_VALUE: never = Symbol("initial") as never;
