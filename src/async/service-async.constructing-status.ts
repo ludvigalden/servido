@@ -1,6 +1,6 @@
 import React from "react";
 
-export class ConstructingStatus {
+export class ServiceConstructingStatus {
     static ID_INDEX = 0;
 
     private _$ids = new Set<any>();
@@ -13,7 +13,7 @@ export class ConstructingStatus {
         Object.defineProperty(this, "_$notify", { configurable: false, writable: false, enumerable: false });
     }
 
-    start(id: any = String(ConstructingStatus.ID_INDEX++)) {
+    start(id: any = String(ServiceConstructingStatus.ID_INDEX++)) {
         this._$ids.add(id);
 
         if (!this.current) {

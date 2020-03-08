@@ -1,3 +1,3 @@
-export { ServidoAsync, ConstructingStatus } from "./async";
-export { Servido, requireServido, forgoServido, clearDependent, ServidoContext } from "./core";
-export { useServido, useClearedMemo, useMemoEffect, ServidoProvider, ServidoContextProvider } from "./react";
+export { ServiceAsync, ServiceConstructingStatus } from "./async";
+export { Service, requireService, forgoService, clearDependent, ServiceContext } from "./core";
+export { useService, useClearedMemo, useMemoEffect, ServiceProvider, ServiceContextProvider } from "./react";

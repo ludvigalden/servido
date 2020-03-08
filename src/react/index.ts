@@ -1,3 +1,3 @@
-export * from "./servido-react.context";
-export * from "./servido-react.hooks";
-export * from "./servido-react.provider";
+export * from "./service-react.context";
+export * from "./service-react.hooks";
+export * from "./service-react.provider";

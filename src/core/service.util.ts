@@ -1,4 +1,4 @@
-import { Class, ServidoIdentifier } from "./servido.types";
+import { Class, ServiceIdentifier } from "./service.types";
 
 export function isClass<T, A extends any[]>(obj: any): obj is Class<T, A> {
     let isConstructor = true;
@@ -12,7 +12,7 @@ export function isClass<T, A extends any[]>(obj: any): obj is Class<T, A> {
     return isConstructor;
 }
 
-export function servidoIdentifier<A extends any[]>(args: A | undefined): ServidoIdentifier | undefined {
+export function serviceIdentifier<A extends any[]>(args: A | undefined): ServiceIdentifier | undefined {
     if (!args) {
         return undefined;
     }

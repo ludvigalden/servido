@@ -27,13 +27,13 @@ Servido proposes a new way to structure these kinds of things, which was built w
 For instance, let's say we have an authentication state as well as a state for managing the creation of to-dos:
 
 ```typescript
-import { Servido } from "servido";
+import { Service } from "servido";
 
-class Auth extends Servido {
+class Auth extends Service {
     authenticated: boolean;
 }
 
-class TodoRepo extends Servido {
+class TodoRepo extends Service {
     auth: Auth;
 
     constructor() {
@@ -53,27 +53,27 @@ class TodoRepo extends Servido {
 These can then be used inside a React component:
 
 ```typescript
-import { useServido } from "servido";
+import { useService } from "servido";
 
 function CreateTodos() {
-    const repo = useServido(TodoRepo);
+    const repo = useService(TodoRepo);
 }
 ```
 
-Now, when `Todos` is mounted, `TodoRepo` will be constructed only if it has not been constructed already. Same with `Auth`, which `TodoRepo` depends on - if it has already been constructed, it will return the already constructed instance. Once a Servido no longer has any dependents, the instance will be removed from memory.
+Now, when `Todos` is mounted, `TodoRepo` will be constructed only if it has not been constructed already. Same with `Auth`, which `TodoRepo` depends on - if it has already been constructed, it will return the already constructed instance. Once a service no longer has any dependents, the instance will be removed from memory.
 
 This is essentially all that Servido is all about - making sure that the instances are constructed and distributed logically. The rest of the documentation is more about smaller features and minor caveats.
 
 ## Async constructors
 
-The functionality of some services are by nature asynchronous, for instance an authentication state like below. This can be implemented by extending the `ServidoAsync` class and defining the `constructorAsync` method.
+The functionality of some services are by nature asynchronous, for instance an authentication state like below. This can be implemented by extending the `ServiceAsync` class and defining the `constructorAsync` method.
 
-The promise returned by the `constructorAsync` method will also be used to define the special property `ServidoAsync.constructing`. This is an instance of type `ConstructingStatus` which allows for the methods `start`, `stop`, and `use` and exposes the current status by the property `current`.
+The promise returned by the `constructorAsync` method will also be used to define the special property `ServiceAsync.constructing`. This is an instance of type `ServiceConstructingStatus` which allows for the methods `start`, `stop`, and `use` and exposes the current status by the property `current`.
 
 ```tsx
-import { ServidoAsync } from "servido";
+import { ServiceAsync } from "servido";
 
-class Auth extends ServidoAsync {
+class Auth extends ServiceAsync {
     authenticated: boolean;
 
     protected async constructorAsync() {
@@ -81,7 +81,7 @@ class Auth extends ServidoAsync {
     }
 }
 
-class TodosFetcher extends ServidoAsync {
+class TodosFetcher extends ServiceAsync {
     auth: Auth;
 
     todos: Todo[];
@@ -101,7 +101,7 @@ class TodosFetcher extends ServidoAsync {
 
 
 function App() {
-    const auth = useServido(Auth);
+    const auth = useService(Auth);
 
     if (auth.constructing.use()) {
         return <p>Loading</p>;
@@ -115,12 +115,12 @@ function App() {
 
 ## Arguments
 
-Say we want a Servido used specifically for a value with a certain certain identifier. In the following code, every `<TodoItem />` will access the instance with the same defined `todoId` as the passed component prop. Additionally, if the passed argument to `useServido` changes, a new instance may or may not be constructed.
+Say we want a service used specifically for a value with a certain certain identifier. In the following code, every `<TodoItem />` will access the instance with the same defined `todoId` as the passed component prop. Additionally, if the passed argument to `useService` changes, a new instance may or may not be constructed.
 
 ```tsx
-import { ServidoAsync, useServido } from "servido";
+import { ServiceAsync, useService } from "servido";
 
-class TodoService extends ServidoAsync {
+class TodoService extends ServiceAsync {
     current: Todo;
 
     constructor(readonly todoId: number) {
@@ -133,7 +133,7 @@ class TodoService extends ServidoAsync {
 }
 
 function TodoItem(props: { todoId: number; }) {
-    const todo = useServido(TodoService, props.todoId);
+    const todo = useService(TodoService, props.todoId);
 
     if (todo.constructing.use()) {
         return <p>Loading</p>
@@ -149,21 +149,21 @@ function TodoItem(props: { todoId: number; }) {
 
 To be more specific, the arguments generate an identifier which is used to check if arguments are equal. If only one argument is passed, that will serve as the identifier (and be used as a strict equality check), but if more than one a string will be generated using the string constructor. For this reason, do not use objects as arguments.
 
-Additionally, if no argument is passed and there is a currently existing instance of the required Servido that *has* arguments passed, it will use return that instance. On the other hand, if arguments are passed, the required instance will always be constructed with those same arguments.
+Additionally, if no argument is passed and there is a currently existing instance of the required service that *has* arguments passed, it will use return that instance. On the other hand, if arguments are passed, the required instance will always be constructed with those same arguments.
 
 ## Server-side rendering
 
-When using a Servido inside a component, a `ServidoContext` is used to manage the memory of constructed instances. If that has not been provided using the `ServidoContextProvider`, the default global context will be used. For server-side rendering, or any other reason that might make you want to localize such things, you can do it like so:
+When using a service inside a component, a `ServiceContext` is used to manage the memory of constructed instances. If that has not been provided using the `ServiceContextProvider`, the default global context will be used. For server-side rendering, or any other reason that might make you want to localize such things, you can do it like so:
 
 ```tsx
-import { ServidoContextProvider, useServido } from "servido";
+import { ServiceContextProvider, useService } from "servido";
 
 function App() {
     return (
         <>
-            <ServidoContextProvider>
+            <ServiceContextProvider>
                 <A />
-            </ServidoContextProvider>
+            </ServiceContextProvider>
 
             <B />
         </>
@@ -171,24 +171,24 @@ function App() {
 }
 
 function A() {
-    const auth = useServido(Auth);
+    const auth = useService(Auth);
 }
 
 function B() {
-    const auth = useServido(Auth);
+    const auth = useService(Auth);
 }
 ```
 
-In the code above, even though `A` and `B` are rendered simultaneously, the instance of `Auth` used by `A` will not be equal to the one used by `B`, because `A` is provided a different context containing the constructed Servido instances.
+In the code above, even though `A` and `B` are rendered simultaneously, the instance of `Auth` used by `A` will not be equal to the one used by `B`, because `A` is provided a different context containing the instances of the constructed services.
 
 ## Circular requirements
 
-If a number of Servidos depend on each-other, they must extend `ServidoAsync` and define the requirements inside the `constructorAsync` method, like so:
+If a number of services depend on each-other, they must extend `ServiceAsync` and define the requirements inside the `constructorAsync` method, like so:
 
 ```typescript
-import { ServidoAsync } from "servido";
+import { ServiceAsync } from "servido";
 
-class A extends ServidoAsync {
+class A extends ServiceAsync {
     b: B;
 
     constructorAsync() {
@@ -196,7 +196,7 @@ class A extends ServidoAsync {
     }
 }
 
-class B extends ServidoAsync {
+class B extends ServiceAsync {
     a: A;
 
     constructorAsync() {

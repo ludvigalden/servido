@@ -1,23 +1,23 @@
 import React from "react";
 
-import { Servido, Class, requireServido, servidoIdentifier, ServidoDependent, forgoServido } from "../core";
+import { Service, Class, requireService, serviceIdentifier, ServiceDependent, forgoService } from "../core";
 
-import { useServidoContext, reactServidoContexts } from "./servido-react.context";
+import { useServiceContext, reactServiceContexts } from "./service-react.context";
 
-const FALLBACK_REACTCONTEXT = React.createContext<Servido | undefined>(undefined);
+const FALLBACK_REACTCONTEXT = React.createContext<Service | undefined>(undefined);
 
 /**
- * Use a `Servido` inside a component, with or without arguments. If the passed servido or arguments change, a new instance will be required if appropriate.
- * If the servido has been provided by a parent `ServidoProvider` with matching arguments,that will be preferred over looking through the nearest `ServidoContext` (which can also be provided).
+ * Use a `Service` inside a component, with or without arguments. If the passed service or arguments change, a new instance will be required if appropriate.
+ * If the service has been provided by a parent `ServiceProvider` with matching arguments,that will be preferred over looking through the nearest `ServiceContext` (which can also be provided).
  */
-export function useServido<S extends Servido>(servido: Class<S, []> | S): S;
-export function useServido<S extends Servido, A extends any[]>(servido: Class<S, A> | S, ...arguments_: A): S;
-export function useServido<S extends Servido>(servido: Class<S> | S, ...args: any[]) {
-    const identifier = servidoIdentifier(args);
+export function useService<S extends Service>(service: Class<S, []> | S): S;
+export function useService<S extends Service, A extends any[]>(service: Class<S, A> | S, ...arguments_: A): S;
+export function useService<S extends Service>(service: Class<S> | S, ...args: any[]) {
+    const identifier = serviceIdentifier(args);
 
     let reactContextType: React.Context<S>;
 
-    const constructedReactContexts = reactServidoContexts.get(servido);
+    const constructedReactContexts = reactServiceContexts.get(service);
 
     if (constructedReactContexts) {
         if (constructedReactContexts.has(identifier)) {
@@ -31,22 +31,22 @@ export function useServido<S extends Servido>(servido: Class<S> | S, ...args: an
         reactContextType = FALLBACK_REACTCONTEXT as any;
     }
 
-    const reactContextServido = React.useContext<S>(reactContextType);
+    const reactContextService = React.useContext<S>(reactContextType);
 
-    const context = useServidoContext();
+    const context = useServiceContext();
 
     const current = useClearedMemo(
         () => {
-            let next: { dependent: ServidoDependent | undefined; servido: S };
+            let next: { dependent: ServiceDependent | undefined; service: S };
 
-            if (reactContextServido) {
-                next = { dependent: undefined, servido: reactContextServido };
+            if (reactContextService) {
+                next = { dependent: undefined, service: reactContextService };
             } else {
-                const dependent = uniqueServidoDependent();
+                const dependent = uniqueServiceDependent();
 
                 next = {
                     dependent,
-                    servido: requireServido({ servido, dependent, context }),
+                    service: requireService({ service, dependent, context }),
                 };
             }
 
@@ -58,13 +58,13 @@ export function useServido<S extends Servido>(servido: Class<S> | S, ...args: an
             }
 
             if (previous.dependent) {
-                forgoServido({ servido: previous.servido, dependent: previous.dependent });
+                forgoService({ service: previous.service, dependent: previous.dependent });
             }
         },
-        [servido, identifier, context, reactContextServido],
+        [service, identifier, context, reactContextService],
     );
 
-    return current.servido;
+    return current.service;
 }
 
 const INITIAL_VALUE: never = Symbol("initial") as never;
@@ -101,6 +101,6 @@ export function useMemoEffect(getClearEffect: () => () => any, deps: readonly an
 let uniqueIndex = 0;
 
 /** Get a string unique to this runtime. */
-export function uniqueServidoDependent(): ServidoDependent {
+export function uniqueServiceDependent(): ServiceDependent {
     return String(uniqueIndex++);
 }
