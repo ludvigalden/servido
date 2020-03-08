@@ -101,6 +101,6 @@ export function useMemoEffect(getClearEffect: () => () => any, deps: readonly an
 let uniqueIndex = 0;
 
 /** Get a string unique to this runtime. */
-export function uniqueServiceDependent(): ServiceDependent {
+export function uniqueServiceDependent(): ServiceDependent & string {
     return String(uniqueIndex++);
 }
