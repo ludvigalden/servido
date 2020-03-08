@@ -3,6 +3,7 @@ import React from "react";
 import { Servido, servidoIdentifier, isClass, constructServido, ServidoIdentifier, Class, getClassThunkConstructor } from "../core";
 
 import { useServidoContext, reactServidoContexts } from "./servido-react.context";
+import { useClearedMemo } from "./servido-react.hooks";
 
 export function ServidoProvider<S extends Servido>(props: React.PropsWithChildren<ServidoProviderProps<S>>): JSX.Element;
 export function ServidoProvider<S extends Servido, A extends any[]>(
@@ -38,12 +39,23 @@ export function ServidoProvider<S extends Servido>(props: React.PropsWithChildre
         return servidoReactContext as React.Context<S>;
     }, []);
 
-    const servido = React.useMemo(
-        () => (isClass(props.servido) ? constructServido<S, any[]>({ servido: props.servido, args: props.args, context }) : props.servido),
-        [props.servido],
+    const servido = useClearedMemo<{ constructed: S; servido: undefined } | { constructed: undefined; servido: S }>(
+        () =>
+            isClass(props.servido)
+                ? { constructed: constructServido<S, any[]>({ servido: props.servido, args: props.args, context }), servido: undefined }
+                : { constructed: undefined, servido: props.servido },
+        ({ constructed }) => {
+            if (constructed) {
+                Servido.deconstruct(constructed);
+            }
+        },
+        [props.servido, ...(props.args || [])],
     );
 
-    return React.createElement(servidoReactContext.Provider, { value: servido, children: props.children });
+    return React.createElement(servidoReactContext.Provider, {
+        value: (servido.constructed || servido.servido) as S,
+        children: props.children,
+    });
 }
 
 export interface ServidoProviderProps<S extends Servido> {
