@@ -1,35 +1,35 @@
-import { Servido, requireServido, ServidoContext, forgoServido } from "../src";
-import { getClassThunkConstructor, isClass, servidoIdentifier, CircularDependencyError } from "../src/core";
+import { Service, requireService, ServiceContext, forgoService } from "../src";
+import { getClassThunkConstructor, isClass, serviceIdentifier, CircularDependencyError } from "../src/core";
 
-describe("servido core", () => {
+describe("service core", () => {
     const dependent = 0;
-    const context = ServidoContext.get();
+    const context = ServiceContext.get();
 
-    let servidoA: ServidoA;
+    let serviceA: ServiceA;
 
     it("constructs", () => {
-        servidoA = requireServido({ servido: ServidoA, dependent, context });
-        expect(servidoA.value).toEqual(2);
+        serviceA = requireService({ service: ServiceA, dependent, context });
+        expect(serviceA.value).toEqual(2);
     });
 
     it("populates context", () => {
-        const constructed = context.constructed.get(ServidoA);
+        const constructed = context.constructed.get(ServiceA);
         const requirements = context.requirements.get(dependent);
 
         expect(constructed).toBeDefined();
         expect(requirements).toBeDefined();
 
-        expect(context.requirements.get(servidoA)).toBeUndefined();
-        expect(context.constructors.get(servidoA)).toEqual(ServidoA);
+        expect(context.requirements.get(serviceA)).toBeUndefined();
+        expect(context.constructors.get(serviceA)).toEqual(ServiceA);
 
         if (constructed) {
-            const identifier = servidoIdentifier(undefined);
-            const servido = constructed.get(identifier);
+            const identifier = serviceIdentifier(undefined);
+            const service = constructed.get(identifier);
 
-            expect(servido).toBeDefined();
+            expect(service).toBeDefined();
 
-            if (servido) {
-                expect(servido).toEqual(servidoA);
+            if (service) {
+                expect(service).toEqual(serviceA);
             }
         }
 
@@ -39,75 +39,75 @@ describe("servido core", () => {
     });
 
     it("constructs new with different context", () => {
-        const newServidoA = requireServido({ servido: ServidoA, dependent, context: new ServidoContext() });
-        expect(newServidoA === servidoA).toEqual(false);
+        const newServiceA = requireService({ service: ServiceA, dependent, context: new ServiceContext() });
+        expect(newServiceA === serviceA).toEqual(false);
     });
 
     it("checks is-class correctly", () => {
-        expect(isClass(ServidoA)).toEqual(true);
-        expect(isClass(servidoA)).toEqual(false);
+        expect(isClass(ServiceA)).toEqual(true);
+        expect(isClass(serviceA)).toEqual(false);
     });
 
     it("gets constructor correctly", () => {
-        expect(getClassThunkConstructor(servidoA)).toEqual(ServidoA);
-        expect(getClassThunkConstructor(ServidoA)).toEqual(ServidoA);
+        expect(getClassThunkConstructor(serviceA)).toEqual(ServiceA);
+        expect(getClassThunkConstructor(ServiceA)).toEqual(ServiceA);
     });
 
-    let servidoB: ServidoB;
+    let serviceB: ServiceB;
 
     it("requires link", () => {
-        servidoB = requireServido({ servido: ServidoB, dependent, context });
-        expect(getClassThunkConstructor(servidoB.a)).toEqual(ServidoA);
-        expect(servidoB.a).toEqual(servidoA);
-        expect(context.requirements.get(servidoB)).toContain(servidoA);
-        expect(context.requirements.get(dependent)).toContain(servidoB);
+        serviceB = requireService({ service: ServiceB, dependent, context });
+        expect(getClassThunkConstructor(serviceB.a)).toEqual(ServiceA);
+        expect(serviceB.a).toEqual(serviceA);
+        expect(context.requirements.get(serviceB)).toContain(serviceA);
+        expect(context.requirements.get(dependent)).toContain(serviceB);
     });
 
     it("throws and clears on circular sync requirements", () => {
         let error: Error | undefined;
 
         try {
-            requireServido({ servido: ServidoY, dependent, context });
+            requireService({ service: ServiceY, dependent, context });
         } catch (_error) {
             error = _error;
         }
 
         expect(error).toBeDefined();
         expect(error instanceof CircularDependencyError).toBe(true);
-        expect(context.constructed.get(ServidoX)).toBeUndefined();
-        expect(context.constructed.get(ServidoY)).toBeUndefined();
+        expect(context.constructed.get(ServiceX)).toBeUndefined();
+        expect(context.constructed.get(ServiceY)).toBeUndefined();
     });
 
     it("deconstructs", () => {
-        servidoA = requireServido({ servido: ServidoA, dependent, context });
-        servidoB = requireServido({ servido: ServidoB, dependent, context });
+        serviceA = requireService({ service: ServiceA, dependent, context });
+        serviceB = requireService({ service: ServiceB, dependent, context });
 
-        expect(context.requirements.get(servidoB)).toContain(servidoA);
-        expect(context.dependents.get(servidoA)).toContain(servidoB);
+        expect(context.requirements.get(serviceB)).toContain(serviceA);
+        expect(context.dependents.get(serviceA)).toContain(serviceB);
 
-        forgoServido({ servido: servidoB, dependent, context });
+        forgoService({ service: serviceB, dependent, context });
 
-        expect(context.constructed.get(ServidoB)).toBeUndefined();
-        expect(context.requirements.get(servidoB)).toBeUndefined();
-        expect(context.dependents.get(servidoA)).not.toContain(servidoB);
-        expect(context.constructors.get(servidoB)).toBeUndefined();
+        expect(context.constructed.get(ServiceB)).toBeUndefined();
+        expect(context.requirements.get(serviceB)).toBeUndefined();
+        expect(context.dependents.get(serviceA)).not.toContain(serviceB);
+        expect(context.constructors.get(serviceB)).toBeUndefined();
 
-        expect(context.requirements.get(dependent)).not.toContain(servidoB);
+        expect(context.requirements.get(dependent)).not.toContain(serviceB);
 
-        expect(context.dependents.get(servidoA)).toContain(dependent);
+        expect(context.dependents.get(serviceA)).toContain(dependent);
 
-        forgoServido({ servido: servidoA, dependent, context });
+        forgoService({ service: serviceA, dependent, context });
 
-        expect(context.constructed.get(ServidoA)).toBeUndefined();
-        expect(context.dependents.get(servidoA)).toBeUndefined();
-        expect(context.constructors.get(servidoA)).toBeUndefined();
+        expect(context.constructed.get(ServiceA)).toBeUndefined();
+        expect(context.dependents.get(serviceA)).toBeUndefined();
+        expect(context.constructors.get(serviceA)).toBeUndefined();
 
         expect(context.requirements.get(dependent)).toBeUndefined();
 
         expect(context.constructed.size).toEqual(0);
     });
 
-    class ServidoA extends Servido {
+    class ServiceA extends Service {
         value = 1;
 
         constructor() {
@@ -117,33 +117,33 @@ describe("servido core", () => {
         }
     }
 
-    class ServidoB extends Servido {
-        a: ServidoA;
+    class ServiceB extends Service {
+        a: ServiceA;
 
         constructor() {
             super();
 
-            this.a = this.require(ServidoA);
+            this.a = this.require(ServiceA);
         }
     }
 
-    class ServidoX extends Servido {
-        y: ServidoY;
+    class ServiceX extends Service {
+        y: ServiceY;
 
         constructor() {
             super();
 
-            this.y = this.require(ServidoY);
+            this.y = this.require(ServiceY);
         }
     }
 
-    class ServidoY extends Servido {
-        x: ServidoX;
+    class ServiceY extends Service {
+        x: ServiceX;
 
         constructor() {
             super();
 
-            this.x = this.require(ServidoX);
+            this.x = this.require(ServiceX);
         }
     }
 });

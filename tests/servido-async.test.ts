@@ -1,109 +1,109 @@
-import { ServidoAsync, requireServido, forgoServido, ServidoContext, Servido } from "../src";
+import { ServiceAsync, requireService, forgoService, ServiceContext, Service } from "../src";
 
-describe("servido async", () => {
+describe("service async", () => {
     const dependent = 0;
-    const context = ServidoContext.get();
+    const context = ServiceContext.get();
 
-    let servidoK: ServidoK;
+    let serviceK: ServiceK;
 
     it("constructs", () => {
-        servidoK = requireServido({ servido: ServidoK, dependent, context });
+        serviceK = requireService({ service: ServiceK, dependent, context });
 
-        expect(servidoK.constructing.current).toEqual(true);
-        expect(servidoK.value).toEqual(2);
+        expect(serviceK.constructing.current).toEqual(true);
+        expect(serviceK.value).toEqual(2);
 
-        expect(servidoK.constructing.onDone(() => servidoK.value)).resolves.toEqual(3);
+        expect(serviceK.constructing.onDone(() => serviceK.value)).resolves.toEqual(3);
     });
 
-    let servidoL: ServidoL;
+    let serviceL: ServiceL;
 
     it("constructs link", () => {
-        servidoL = requireServido({ servido: ServidoL, dependent, context });
-        servidoK = requireServido({ servido: ServidoK, dependent, context });
+        serviceL = requireService({ service: ServiceL, dependent, context });
+        serviceK = requireService({ service: ServiceK, dependent, context });
 
-        expect(servidoK.constructing.current).toEqual(true);
-        expect(servidoL.value).toEqual(2);
-        expect(context.requirements.get(servidoL)).toContain(servidoK);
-        expect(context.requirements.get(servidoK)).toBeUndefined();
-        expect(context.dependents.get(servidoK)).toContain(servidoL);
-        expect(context.dependents.get(servidoK)).toContain(dependent);
-        expect(context.dependents.get(servidoL)).toContain(dependent);
+        expect(serviceK.constructing.current).toEqual(true);
+        expect(serviceL.value).toEqual(2);
+        expect(context.requirements.get(serviceL)).toContain(serviceK);
+        expect(context.requirements.get(serviceK)).toBeUndefined();
+        expect(context.dependents.get(serviceK)).toContain(serviceL);
+        expect(context.dependents.get(serviceK)).toContain(dependent);
+        expect(context.dependents.get(serviceL)).toContain(dependent);
 
-        expect(servidoL.k.constructing.onDone(() => servidoL.value)).resolves.toEqual(3);
+        expect(serviceL.k.constructing.onDone(() => serviceL.value)).resolves.toEqual(3);
         expect(
             new Promise((resolve) => {
-                servidoL.constructing.onDone(() => {
-                    resolve(servidoL.value);
+                serviceL.constructing.onDone(() => {
+                    resolve(serviceL.value);
                 });
             }),
         ).resolves.toEqual(4);
     });
 
     it("deconstructs link", () => {
-        forgoServido({ servido: servidoL, dependent, context });
+        forgoService({ service: serviceL, dependent, context });
 
-        expect(context.requirements.get(servidoL)).toBeUndefined();
-        expect(context.dependents.get(servidoL)).toBeUndefined();
-        expect(context.requirements.get(dependent)).not.toContain(servidoL);
-        expect(context.requirements.get(dependent)).toContain(servidoK);
+        expect(context.requirements.get(serviceL)).toBeUndefined();
+        expect(context.dependents.get(serviceL)).toBeUndefined();
+        expect(context.requirements.get(dependent)).not.toContain(serviceL);
+        expect(context.requirements.get(dependent)).toContain(serviceK);
 
-        forgoServido({ servido: servidoK, dependent, context });
+        forgoService({ service: serviceK, dependent, context });
 
-        expect(context.requirements.get(servidoK)).toBeUndefined();
+        expect(context.requirements.get(serviceK)).toBeUndefined();
         expect(context.requirements.get(dependent)).toBeUndefined();
-        expect(context.dependents.get(servidoK)).toBeUndefined();
+        expect(context.dependents.get(serviceK)).toBeUndefined();
     });
 
-    let servidoN: ServidoN;
-    let servidoM: ServidoM;
+    let serviceN: ServiceN;
+    let serviceM: ServiceM;
 
     it("constructs circular link", () => {
-        servidoM = requireServido({ servido: ServidoM, dependent, context });
+        serviceM = requireService({ service: ServiceM, dependent, context });
 
-        expect(context.requirements.get(dependent)).toContain(servidoM);
-        expect(context.dependents.get(servidoM)).toContain(dependent);
+        expect(context.requirements.get(dependent)).toContain(serviceM);
+        expect(context.dependents.get(serviceM)).toContain(dependent);
 
-        expect(servidoM.n).toBeDefined();
-        expect(context.requirements.get(servidoM)).toContain(servidoM.n);
-        expect(context.dependents.get(servidoM)).toContain(servidoM.n);
-        expect(context.requirements.get(servidoM.n)).toContain(servidoM);
-        expect(context.dependents.get(servidoM.n)).toContain(servidoM);
-        expect(context.requirements.get(dependent)).not.toContain(servidoM.n);
-        expect(context.dependents.get(servidoM.n)).not.toContain(dependent);
+        expect(serviceM.n).toBeDefined();
+        expect(context.requirements.get(serviceM)).toContain(serviceM.n);
+        expect(context.dependents.get(serviceM)).toContain(serviceM.n);
+        expect(context.requirements.get(serviceM.n)).toContain(serviceM);
+        expect(context.dependents.get(serviceM.n)).toContain(serviceM);
+        expect(context.requirements.get(dependent)).not.toContain(serviceM.n);
+        expect(context.dependents.get(serviceM.n)).not.toContain(dependent);
 
-        servidoN = requireServido({ servido: ServidoN, dependent, context });
+        serviceN = requireService({ service: ServiceN, dependent, context });
 
-        expect(servidoN.m).toBeDefined();
-        expect(servidoN).toEqual(servidoM.n);
-        expect(servidoM).toEqual(servidoN.m);
+        expect(serviceN.m).toBeDefined();
+        expect(serviceN).toEqual(serviceM.n);
+        expect(serviceM).toEqual(serviceN.m);
 
-        expect(context.requirements.get(dependent)).toContain(servidoN);
-        expect(context.requirements.get(servidoN)).toContain(servidoM);
-        expect(context.dependents.get(servidoN)).toContain(servidoM);
-        expect(context.dependents.get(servidoN)).toContain(dependent);
+        expect(context.requirements.get(dependent)).toContain(serviceN);
+        expect(context.requirements.get(serviceN)).toContain(serviceM);
+        expect(context.dependents.get(serviceN)).toContain(serviceM);
+        expect(context.dependents.get(serviceN)).toContain(dependent);
 
-        expect(context.circularRequirements.get(servidoN)).toContain(servidoM);
-        expect(context.circularRequirements.get(servidoM)).toContain(servidoN);
+        expect(context.circularRequirements.get(serviceN)).toContain(serviceM);
+        expect(context.circularRequirements.get(serviceM)).toContain(serviceN);
 
-        expect(servidoM.constructing.onDone(() => servidoM.n)).resolves.toEqual(servidoN);
-        expect(servidoN.constructing.onDone(() => servidoN.m)).resolves.toEqual(servidoM);
+        expect(serviceM.constructing.onDone(() => serviceM.n)).resolves.toEqual(serviceN);
+        expect(serviceN.constructing.onDone(() => serviceN.m)).resolves.toEqual(serviceM);
     });
 
     it("deconstructs circular link", () => {
-        servidoM = requireServido({ servido: ServidoM, dependent, context });
-        servidoN = requireServido({ servido: ServidoN, dependent, context });
+        serviceM = requireService({ service: ServiceM, dependent, context });
+        serviceN = requireService({ service: ServiceN, dependent, context });
 
-        forgoServido({ servido: servidoN, dependent, context });
+        forgoService({ service: serviceN, dependent, context });
 
-        expect(context.dependents.get(servidoN)).not.toContain(dependent);
-        expect(context.requirements.get(dependent)).not.toContain(servidoN);
+        expect(context.dependents.get(serviceN)).not.toContain(dependent);
+        expect(context.requirements.get(dependent)).not.toContain(serviceN);
 
-        expect(context.requirements.get(servidoM)).toContain(servidoN);
-        expect(context.dependents.get(servidoM)).toContain(servidoN);
-        expect(context.requirements.get(servidoN)).toContain(servidoM);
-        expect(context.dependents.get(servidoN)).toContain(servidoM);
+        expect(context.requirements.get(serviceM)).toContain(serviceN);
+        expect(context.dependents.get(serviceM)).toContain(serviceN);
+        expect(context.requirements.get(serviceN)).toContain(serviceM);
+        expect(context.dependents.get(serviceN)).toContain(serviceM);
 
-        forgoServido({ servido: servidoM, dependent, context });
+        forgoService({ service: serviceM, dependent, context });
 
         expect(context.circularRequirements.size).toEqual(0);
         expect(context.constructed.size).toEqual(0);
@@ -113,20 +113,20 @@ describe("servido async", () => {
         expect(context.requirements.size).toEqual(0);
     });
 
-    let servidoQ: ServidoQ;
+    let serviceQ: ServiceQ;
 
     it("deconstructs deep ciricular links", () => {
-        servidoQ = requireServido({ servido: ServidoQ, dependent, context });
+        serviceQ = requireService({ service: ServiceQ, dependent, context });
 
-        expect(servidoQ.o).toBeDefined();
-        expect(servidoQ.o.m).toBeDefined();
-        expect(servidoQ.o.m.n).toBeDefined();
-        expect(servidoQ.o.m.n.m).toBeDefined();
-        expect(servidoQ.p).toBeDefined();
-        expect(servidoQ.p.q).toEqual(servidoQ);
-        expect(servidoQ.p.o).toEqual(servidoQ.o);
+        expect(serviceQ.o).toBeDefined();
+        expect(serviceQ.o.m).toBeDefined();
+        expect(serviceQ.o.m.n).toBeDefined();
+        expect(serviceQ.o.m.n.m).toBeDefined();
+        expect(serviceQ.p).toBeDefined();
+        expect(serviceQ.p.q).toEqual(serviceQ);
+        expect(serviceQ.p.o).toEqual(serviceQ.o);
 
-        forgoServido({ servido: servidoQ, dependent, context });
+        forgoService({ service: serviceQ, dependent, context });
 
         expect(context.circularRequirements.size).toEqual(0);
         expect(context.constructed.size).toEqual(0);
@@ -137,7 +137,7 @@ describe("servido async", () => {
     });
 });
 
-class ServidoK extends ServidoAsync {
+class ServiceK extends ServiceAsync {
     value = 1;
 
     async constructorAsync() {
@@ -149,15 +149,15 @@ class ServidoK extends ServidoAsync {
     }
 }
 
-class ServidoL extends ServidoAsync {
-    k: ServidoK;
+class ServiceL extends ServiceAsync {
+    k: ServiceK;
 
     value = 1;
 
     constructor() {
         super();
 
-        this.k = this.require(ServidoK);
+        this.k = this.require(ServiceK);
     }
 
     async constructorAsync() {
@@ -173,60 +173,60 @@ class ServidoL extends ServidoAsync {
     }
 }
 
-class ServidoM extends ServidoAsync {
-    n: ServidoN;
+class ServiceM extends ServiceAsync {
+    n: ServiceN;
 
     async constructorAsync() {
-        this.n = this.require(ServidoN);
+        this.n = this.require(ServiceN);
     }
 }
 
-class ServidoN extends ServidoAsync {
-    m: ServidoM;
+class ServiceN extends ServiceAsync {
+    m: ServiceM;
 
     async constructorAsync() {
-        this.m = this.require(ServidoM);
+        this.m = this.require(ServiceM);
     }
 }
 
-class ServidoO extends Servido {
-    m: ServidoM;
-    n: ServidoN;
+class ServiceO extends Service {
+    m: ServiceM;
+    n: ServiceN;
 
     constructor() {
         super();
 
-        this.m = this.require(ServidoM);
-        this.n = this.require(ServidoN);
+        this.m = this.require(ServiceM);
+        this.n = this.require(ServiceN);
     }
 }
 
-class ServidoP extends ServidoAsync {
-    o: ServidoO;
-    q: ServidoQ;
+class ServiceP extends ServiceAsync {
+    o: ServiceO;
+    q: ServiceQ;
 
     constructor() {
         super();
 
-        this.o = this.require(ServidoO);
+        this.o = this.require(ServiceO);
     }
 
     async constructorAsync() {
-        this.q = this.require(ServidoQ);
+        this.q = this.require(ServiceQ);
     }
 }
 
-class ServidoQ extends ServidoAsync {
-    p: ServidoP;
-    o: ServidoO;
+class ServiceQ extends ServiceAsync {
+    p: ServiceP;
+    o: ServiceO;
 
     constructor() {
         super();
 
-        this.o = this.require(ServidoO);
+        this.o = this.require(ServiceO);
     }
 
     constructorAsync() {
-        this.p = this.require(ServidoP);
+        this.p = this.require(ServiceP);
     }
 }
