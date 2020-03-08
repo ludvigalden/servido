@@ -1,7 +1,7 @@
 {
 	"name": "servido",
 	"description": "Clear and logically sound services in React ⚗️",
-	"version": "0.0.1-canary.10",
+	"version": "0.0.1-canary.11",
 	"license": "MIT",
 	"author": "Ludvig Aldén <ludvig@tifum.com>",
 	"repository": "ludvigalden/servido",
