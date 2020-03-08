@@ -33,7 +33,6 @@ export function useServido<S extends Servido>(servido: Class<S> | S, ...args: an
 
     const reactContextServido = React.useContext<S>(reactContextType);
 
-    const dependent = React.useMemo(() => uniqueServidoDependent(), []);
     const context = useServidoContext();
 
     const current = useClearedMemo(
@@ -43,9 +42,11 @@ export function useServido<S extends Servido>(servido: Class<S> | S, ...args: an
             if (reactContextServido) {
                 next = { dependent: undefined, servido: reactContextServido };
             } else {
+                const dependent = uniqueServidoDependent();
+
                 next = {
                     dependent,
-                    servido: requireServido({ servido, dependent: uniqueServidoDependent(), context }),
+                    servido: requireServido({ servido, dependent, context }),
                 };
             }
 
