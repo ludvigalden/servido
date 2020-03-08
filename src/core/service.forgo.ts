@@ -1,6 +1,7 @@
 import { ServiceContext } from "./service.context";
 import { Service } from "./service";
 import { ServiceDependent } from "./service.types";
+import { filterErrorStack } from "./service.util";
 
 export function forgoService<S extends Service>(props: ForgoServiceProps<S>) {
     const context = ServiceContext.get(props.context);
@@ -75,7 +76,11 @@ export function forgoService<S extends Service>(props: ForgoServiceProps<S>) {
             }
         }
 
-        Service.deconstruct(props.service);
+        try {
+            Service.deconstruct(props.service);
+        } catch (error) {
+            throw filterErrorStack(error);
+        }
     }
 }
 
