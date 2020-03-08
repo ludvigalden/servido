@@ -32,13 +32,13 @@ export class ServiceConstructingStatus {
     onDone<T = void>(callback?: () => Promise<T> | T) {
         return new Promise<T>((resolve) => {
             if (!this.current) {
-                return resolve(callback ? callback() : undefined);
+                return resolve(typeof callback === "function" ? callback() : undefined);
             }
 
             const subscription = (constructing: boolean) => {
                 if (!constructing) {
                     this.$notify.delete(subscription);
-                    return resolve(callback ? callback() : undefined);
+                    return resolve(typeof callback === "function" ? callback() : undefined);
                 }
             };
 

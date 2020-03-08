@@ -1,7 +1,5 @@
-/* eslint-disable max-len */
-/* eslint-disable prettier/prettier */
 import { requireService } from "./service.require";
-import { ServiceContext } from './service.context';
+import { ServiceContext } from "./service.context";
 import { Class, ServiceIdentifier } from "./service.types";
 import { forgoService, clearDependent } from "./service.forgo";
 
@@ -32,7 +30,12 @@ export class Service {
     /** Contains the set of functions that should be called when deconstructing the service. */
     protected get deconstructFns() {
         if (!this[Service.KEY.DECONSTRUCT_FNS]) {
-            Object.defineProperty(this, Service.KEY.DECONSTRUCT_FNS, { value: new Set(), writable: false, configurable: false, enumerable: false })
+            Object.defineProperty(this, Service.KEY.DECONSTRUCT_FNS, {
+                value: new Set(),
+                writable: false,
+                configurable: false,
+                enumerable: false,
+            });
         }
 
         return this[Service.KEY.DECONSTRUCT_FNS];
@@ -52,16 +55,20 @@ export class Service {
 
     static deconstruct(service: Service) {
         const deconstructFns = service[Service.KEY.DECONSTRUCT_FNS];
-        
+
         if (deconstructFns) {
             for (const deconstructFn of deconstructFns.values()) {
-                deconstructFn();
+                if (typeof deconstructFn === "function") {
+                    deconstructFn();
+                }
             }
 
             deconstructFns.clear();
         }
 
-        service.deconstruct();
+        if (typeof service.deconstruct === "function") {
+            service.deconstruct();
+        }
 
         clearDependent({ dependent: service, context: service[Service.KEY.CONTEXT] });
     }
