@@ -16,10 +16,7 @@ export class ServiceConstructingStatus {
     start(id: any = String(ServiceConstructingStatus.ID_INDEX++)) {
         this._$ids.add(id);
 
-        if (!this.current) {
-            this.current = true;
-            [...this._$notify].forEach((callback) => callback(this.current));
-        }
+        this.set(true);
 
         return () => this.stop(id);
     }
@@ -27,9 +24,8 @@ export class ServiceConstructingStatus {
     stop(id: any) {
         this._$ids.delete(id);
 
-        if (!this._$ids.size && this.current) {
-            this.current = false;
-            [...this._$notify].forEach((callback) => callback(this.current));
+        if (!this._$ids.size) {
+            this.set(false);
         }
     }
 
@@ -62,5 +58,12 @@ export class ServiceConstructingStatus {
         );
 
         return constructing;
+    }
+
+    protected set(constructing: boolean) {
+        if (this.current !== constructing) {
+            this.current = constructing;
+            [...this._$notify].forEach((callback) => typeof callback === "function" && callback(this.current));
+        }
     }
 }
