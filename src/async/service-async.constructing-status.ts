@@ -1,7 +1,7 @@
 import React from "react";
 
 export class ServiceConstructingStatus {
-    static ID_INDEX = 0;
+    static idIndex = 0;
 
     private $ids = new Set<any>();
     private $notify = new Set<(constructing: boolean) => any>();
@@ -13,7 +13,7 @@ export class ServiceConstructingStatus {
         Object.defineProperty(this, "$notify", { configurable: false, writable: false, enumerable: false });
     }
 
-    start(id: any = String(ServiceConstructingStatus.ID_INDEX++)) {
+    start(id: any = String(ServiceConstructingStatus.idIndex++)) {
         this.$ids.add(id);
 
         this.set(true);
@@ -44,6 +44,11 @@ export class ServiceConstructingStatus {
 
             this.$notify.add(subscription);
         });
+    }
+
+    subscribe(callback: (constructing: boolean) => void) {
+        this.$notify.add(callback);
+        return () => this.$notify.delete(callback);
     }
 
     use() {

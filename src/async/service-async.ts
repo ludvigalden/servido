@@ -2,6 +2,7 @@ import { Service } from "../core/service";
 
 import { ServiceConstructingStatus } from "./service-async.constructing-status";
 
+/** The class which all asynchronous and circularly-requiring services must extend. The promise returned by the `constructorAsync` method will define the constructing status. */
 export class ServiceAsync extends Service {
     static async constructAsync<T extends ServiceAsync>(service: T) {
         const stop = service.constructing.start();

@@ -3,6 +3,8 @@ import { Service } from "./service";
 import { ServiceDependent } from "./service.types";
 import { filterErrorStack } from "./service.util";
 
+/** Removes the `dependent` from the `service` and the `requirement` of the `service` from the `dependent`.
+ * If the forgone service has no more dependents, it will be deconstructed and removed from memory. */
 export function forgoService<S extends Service>(props: ForgoServiceProps<S>) {
     const context = ServiceContext.get(props.context);
 
@@ -68,7 +70,7 @@ export function forgoService<S extends Service>(props: ForgoServiceProps<S>) {
             const constructed = context.constructed.get(constructor);
 
             if (constructed) {
-                constructed.delete(props.service[Service.KEY.ID]);
+                constructed.delete(props.service[Service.key.id]);
 
                 if (!constructed.size) {
                     context.constructed.delete(constructor);
@@ -91,6 +93,7 @@ interface ForgoServiceProps<S extends Service> {
     context?: ServiceContext;
 }
 
+/** Removes all of the requirements of the `dependent`. If any one of the forgone services has no more dependents, it will be deconstructed and removed from memory. */
 export function clearDependent(props: ClearDependentProps) {
     const context = ServiceContext.get(props.context);
 

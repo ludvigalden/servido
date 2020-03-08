@@ -1,34 +1,45 @@
 import React from "react";
 
-import { Service, Class, requireService, serviceIdentifier, ServiceDependent, forgoService, filterErrorStack } from "../core";
+import {
+    Service,
+    Class,
+    requireService,
+    serviceIdentifier,
+    ServiceDependent,
+    forgoService,
+    filterErrorStack,
+    getClassThunkConstructor,
+} from "../core";
 
 import { useServiceContext, reactServiceContexts } from "./service-react.context";
 
-const FALLBACK_REACTCONTEXT = React.createContext<Service | undefined>(undefined);
+const fallbackReactContextType = React.createContext<Service | undefined>(undefined);
 
 /**
  * Use a `Service` inside a component, with or without arguments. If the passed service or arguments change, a new instance will be required if appropriate.
- * If the service has been provided by a parent `ServiceProvider` with matching arguments,that will be preferred over looking through the nearest `ServiceContext` (which can also be provided).
+ * If the service has been provided by a parent `ServiceProvider` with matching arguments, that will be preferred over looking through the nearest `ServiceContext` (which can also be provided).
  */
+/** If the service accepts arguments, those can be passed as additional arguments to the hook. Whenever the passed service or arguments change, a new instance may or may not be constructed.
+ * If an instance of the service has been provided by a parent using `ServiceProvider`, that instance will be preferred unless there is a mismatch of arguments. */
 export function useService<S extends Service>(service: Class<S, []> | S): S;
 export function useService<S extends Service, A extends any[]>(service: Class<S, A> | S, ...arguments_: A): S;
 export function useService<S extends Service>(service: Class<S> | S, ...args: any[]) {
-    const identifier = serviceIdentifier(args);
+    const id = serviceIdentifier(args);
 
     let reactContextType: React.Context<S>;
 
-    const constructedReactContexts = reactServiceContexts.get(service);
+    const constructedReactContexts = reactServiceContexts.get(getClassThunkConstructor(service));
 
     if (constructedReactContexts) {
-        if (constructedReactContexts.has(identifier)) {
-            reactContextType = constructedReactContexts.get(identifier) as any;
-        } else if (!identifier && constructedReactContexts.size) {
+        if (constructedReactContexts.has(id)) {
+            reactContextType = constructedReactContexts.get(id) as any;
+        } else if (!id && constructedReactContexts.size) {
             reactContextType = constructedReactContexts.get(constructedReactContexts.keys().next().value) as any;
         } else {
-            reactContextType = FALLBACK_REACTCONTEXT as any;
+            reactContextType = fallbackReactContextType as any;
         }
     } else {
-        reactContextType = FALLBACK_REACTCONTEXT as any;
+        reactContextType = fallbackReactContextType as any;
     }
 
     const reactContextService = React.useContext<S>(reactContextType);
@@ -40,7 +51,7 @@ export function useService<S extends Service>(service: Class<S> | S, ...args: an
             () => {
                 let next: { dependent: ServiceDependent | undefined; service: S };
 
-                if (reactContextService) {
+                if (reactContextService && (id == null || reactContextService[Service.key.id] === id)) {
                     next = { dependent: undefined, service: reactContextService };
                 } else {
                     const dependent = uniqueServiceDependent();
@@ -62,7 +73,7 @@ export function useService<S extends Service>(service: Class<S> | S, ...args: an
                     forgoService({ service: previous.service, dependent: previous.dependent });
                 }
             },
-            [service, identifier, context, reactContextService],
+            [service, id, context, reactContextService],
         );
 
         return current.service;
@@ -104,7 +115,7 @@ export function useMemoEffect(getClearEffect: () => () => any, deps: readonly an
 
 let uniqueIndex = 0;
 
-/** Get a string unique to this runtime. */
+/** Get a string that can be safely assumed to be unique among service dependents. */
 export function uniqueServiceDependent(): ServiceDependent & string {
     return String(uniqueIndex++);
 }

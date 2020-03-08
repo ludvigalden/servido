@@ -6,6 +6,8 @@ import { Service } from "./service";
 import { Class, ServiceDependent, ServiceIdentifier } from "./service.types";
 import { isClass, serviceIdentifier, getClassThunkConstructor, filterErrorStack } from "./service.util";
 
+/** Create a dependency of the `service`. If the service accepts arguments, those can be passed using the `args` prop. If no arguments are passed or if there
+ * has already been a constructed instance with the same identifiable arguments, that will be preferred over constructing a new instance. */
 export function requireService<S extends Service, A extends any[]>(props: RequireServiceProps<S, A>): S;
 export function requireService<S extends Service>(props: RequireServiceProps<S, []>): S;
 export function requireService(props: RequireServiceProps<Service, any[]>) {
@@ -13,7 +15,7 @@ export function requireService(props: RequireServiceProps<Service, any[]>) {
 
     if (!isClass(props.service)) {
         // the service was passed as an instance and params are OK
-        if (id != null && props.service[Service.KEY.ID] !== id) {
+        if (id != null && props.service[Service.key.id] !== id) {
             // the passed parameters do not match the instance, get prototype and go forward as if the prototype was passed
             props.service = getClassThunkConstructor(props.service) as Class<Service, any[]>;
         } else {

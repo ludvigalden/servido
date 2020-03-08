@@ -8,7 +8,7 @@ export function constructService<S extends Service>(props: ConstructServiceProps
 export function constructService(props: ConstructServiceProps<Service, any[]>) {
     if (props.context != null && props.context !== ServiceContext.default) {
         // allow for requiring inside the constructor
-        Object.defineProperty(props.service.prototype, Service.KEY.CONTEXT, {
+        Object.defineProperty(props.service.prototype, Service.key.context, {
             value: props.context,
             configurable: true,
             enumerable: false,
@@ -26,7 +26,7 @@ export function constructService(props: ConstructServiceProps<Service, any[]>) {
     const id = props.args ? serviceIdentifier(props.args) : props.id;
 
     if (id != null) {
-        Object.defineProperty(service, Service.KEY.ID, {
+        Object.defineProperty(service, Service.key.id, {
             value: id,
             configurable: false,
             writable: false,
@@ -36,16 +36,16 @@ export function constructService(props: ConstructServiceProps<Service, any[]>) {
 
     if (props.context != null && props.context !== ServiceContext.default) {
         // remove from prototype as it now will be defined in the instance
-        delete props.service.prototype[Service.KEY.CONTEXT];
+        delete props.service.prototype[Service.key.context];
 
-        Object.defineProperty(service, Service.KEY.CONTEXT, {
+        Object.defineProperty(service, Service.key.context, {
             value: props.context,
             configurable: false,
             writable: false,
             enumerable: false,
         });
     } else {
-        delete service[Service.KEY.CONTEXT];
+        delete service[Service.key.context];
     }
 
     return service;

@@ -3,34 +3,33 @@ import { ServiceContext } from "./service.context";
 import { Class, ServiceIdentifier } from "./service.types";
 import { forgoService, clearDependent } from "./service.forgo";
 
-/** Describes the interface of a service, but does not provide or utilize any of the described functionalities by itself.
- * In order to make use of a service, it must be required by a dependent, which can be done by a different context using
- * its own `Service.require(Service)`. */
+/** The class which all services must extend, allowing for requiring and forgoing other services as well as managing the construct/deconstruct lifecycle. */
 export class Service {
     /** The generated identifier for the instance. */
     protected $id?: ServiceIdentifier;
 
-    /** Called once there are no dependents of the Service left and it is to be removed from memory. */
+    /** Called once there are no remaining dependents of the service, after calling each of the `deconstructFns`. */
     protected deconstruct(): void {
         return;
     }
 
-    /** Gets a Service using the instance as the dependent, typically to be used inside the `construct` method. */
+    /** Require a service using `this` as the dependent. */
     protected require<S extends Service>(service: Class<S, []> | S): S;
     protected require<S extends Service, A extends any[]>(service: Class<S, A> | S, ...arguments_: A): S;
     protected require(service: Class<Service> | Service, ...args: any[]): any {
-        return requireService({ service, context: this[Service.KEY.CONTEXT], dependent: this, args });
+        return requireService({ service, context: this[Service.key.context], dependent: this, args });
     }
 
-    /** Forgos a Service that has previously been required. */
+    /** Forgo service that has previously been required using the `require` method. */
     protected forgo<S extends Service>(service: S) {
-        return forgoService({ service, context: this[Service.KEY.CONTEXT], dependent: this });
+        return forgoService({ service, context: this[Service.key.context], dependent: this });
     }
 
-    /** Contains the set of functions that should be called when deconstructing the service. */
+    /** Functions that should be called once there are no remaining dependents of the service and it is to be removed from memory,
+     * prior to calling the `deconstruct` method. */
     protected get deconstructFns() {
-        if (!this[Service.KEY.DECONSTRUCT_FNS]) {
-            Object.defineProperty(this, Service.KEY.DECONSTRUCT_FNS, {
+        if (!this[Service.key.deconstructFns]) {
+            Object.defineProperty(this, Service.key.deconstructFns, {
                 value: new Set(),
                 writable: false,
                 configurable: false,
@@ -38,23 +37,18 @@ export class Service {
             });
         }
 
-        return this[Service.KEY.DECONSTRUCT_FNS];
+        return this[Service.key.deconstructFns];
     }
 
     private $context?: ServiceContext;
     private $deconstructFns?: Set<Function>;
 
-    /** Specifies private properties. */
-    static KEY = {
-        /** If a `ServiceIdentifier` could be generated when constructing the service, that will be added to the constructed service using this key. */
-        ID: "$id" as "$id",
-        /** If a context other than the default context was used for the requireing of the service, that will be defined using this key. */
-        CONTEXT: "$context" as "$context",
-        DECONSTRUCT_FNS: "$deconstructFns" as "$deconstructFns",
-    };
-
     static deconstruct(service: Service) {
-        const deconstructFns = service[Service.KEY.DECONSTRUCT_FNS];
+        if (typeof service.deconstruct === "function") {
+            service.deconstruct();
+        }
+
+        const deconstructFns = service[Service.key.deconstructFns];
 
         if (deconstructFns) {
             for (const deconstructFn of deconstructFns.values()) {
@@ -66,11 +60,7 @@ export class Service {
             deconstructFns.clear();
         }
 
-        if (typeof service.deconstruct === "function") {
-            service.deconstruct();
-        }
-
-        clearDependent({ dependent: service, context: service[Service.KEY.CONTEXT] });
+        clearDependent({ dependent: service, context: service[Service.key.context] });
     }
 
     static require<S extends Service>(service: Class<S, []> | S): S;
@@ -83,4 +73,13 @@ export class Service {
     static forgo<S extends Service>(service: S) {
         return forgoService({ service, dependent: Service });
     }
+
+    /** Private properties of a `Service`. */
+    static key = {
+        /** If a `ServiceIdentifier` could be generated when constructing the service, that will be added to the constructed service using this key. */
+        id: "$id" as "$id",
+        /** If a context other than the default context was used for the requireing of the service, that will be defined using this key. */
+        context: "$context" as "$context",
+        deconstructFns: "$deconstructFns" as "$deconstructFns",
+    };
 }
