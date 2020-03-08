@@ -8,7 +8,7 @@ import { forgoServido, clearDependent } from "./servido.forgo";
  * its own `Servido.require(Servido)`. */
 export class Servido {
     private _$deconstructFns?: Set<Function>;
-    private _$context?: ServidoContext;
+    private __context__?: ServidoContext;
 
     /** The generated identifier for the instance. */
     protected $id?: ServidoIdentifier;
@@ -22,12 +22,12 @@ export class Servido {
     protected require<S extends Servido>(servido: Class<S, []> | S): S;
     protected require<S extends Servido, A extends any[]>(servido: Class<S, A> | S, ...arguments_: A): S;
     protected require(servido: Class<Servido> | Servido, ...args: any[]): any {
-        return requireServido({ servido, context: this._$context, dependent: this, args });
+        return requireServido({ servido, context: this.__context__, dependent: this, args });
     }
 
     /** Forgos a Servido that has previously been required. */
     protected forgo<S extends Servido>(servido: S) {
-        return forgoServido({ servido, context: this._$context, dependent: this });
+        return forgoServido({ servido, context: this.__context__, dependent: this });
     }
 
     /** Contains the set of functions that should be called when deconstructing the servido. */
@@ -44,7 +44,7 @@ export class Servido {
         /** If a `ServidoIdentifier` could be generated when constructing the servido, that will be added to the constructed servido using this key. */
         ID: "$id" as "$id",
         /** If a context other than the default context was used for the requireing of the servido, that will be defined using this key. */
-        CONTEXT: "_$context" as "_$context",
+        CONTEXT: "__context__" as "__context__",
     };
 
     static deconstruct(servido: Servido) {
