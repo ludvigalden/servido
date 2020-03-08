@@ -1,6 +1,11 @@
+
 <p align="center">
-  <img src="https://user-images.githubusercontent.com/30798446/76152950-bfbed580-60c5-11ea-9f63-86a2a9dca4ed.png" width="192" height="128" alt="Formik.js" />
+  <img src="https://user-images.githubusercontent.com/30798446/76160358-d5fe7d00-6129-11ea-977c-fef96bb46a12.png" width="230" height="230" alt="Servido.js" />
 </p>
+
+<h3 align="center">
+  Clear and logically sound services in React. &nbsp;⚗️
+</h3>
 
 <br>
 
