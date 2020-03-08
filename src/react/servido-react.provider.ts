@@ -1,6 +1,6 @@
 import React from "react";
 
-import { Servido, servidoIdentifier, isClass, constructServido, ServidoIdentifier, Class } from "../core";
+import { Servido, servidoIdentifier, isClass, constructServido, ServidoIdentifier, Class, getClassThunkConstructor } from "../core";
 
 import { useServidoContext, reactServidoContexts } from "./servido-react.context";
 
@@ -11,30 +11,31 @@ export function ServidoProvider<S extends Servido, A extends any[]>(
 export function ServidoProvider<S extends Servido>(props: React.PropsWithChildren<ServidoProviderPropsWithArgs<S, any[]>>) {
     const context = useServidoContext();
 
-    const reactServido = React.useMemo<React.Context<S>>(() => {
+    const servidoReactContext = React.useMemo<React.Context<S>>(() => {
         const identifier = props.args ? servidoIdentifier(props.args) : undefined;
 
+        const constructor = getClassThunkConstructor(props.servido);
         let servidoReactContexts: Map<ServidoIdentifier, React.Context<S> | React.Context<undefined> | undefined>;
 
-        if (reactServidoContexts.has(props.servido)) {
-            servidoReactContexts = reactServidoContexts.get(props.servido) as any;
+        if (reactServidoContexts.has(constructor)) {
+            servidoReactContexts = reactServidoContexts.get(constructor) as any;
         } else {
             servidoReactContexts = new Map();
-            reactServidoContexts.set(props.servido, servidoReactContexts as any);
+            reactServidoContexts.set(constructor, servidoReactContexts as any);
         }
 
-        let servido: React.Context<S> | React.Context<undefined> | undefined;
+        let servidoReactContext: React.Context<S> | React.Context<undefined> | undefined;
 
         if (servidoReactContexts.has(identifier)) {
-            servido = servidoReactContexts.get(identifier);
+            servidoReactContext = servidoReactContexts.get(identifier);
         } else if (!identifier && servidoReactContexts.size) {
-            servido = servidoReactContexts.get(servidoReactContexts.keys().next().value);
+            servidoReactContext = servidoReactContexts.get(servidoReactContexts.keys().next().value);
         } else {
-            servido = React.createContext(undefined);
-            servidoReactContexts.set(identifier, servido);
+            servidoReactContext = React.createContext(undefined);
+            servidoReactContexts.set(identifier, servidoReactContext);
         }
 
-        return servido as React.Context<S>;
+        return servidoReactContext as React.Context<S>;
     }, []);
 
     const servido = React.useMemo(
@@ -42,7 +43,7 @@ export function ServidoProvider<S extends Servido>(props: React.PropsWithChildre
         [props.servido],
     );
 
-    return React.createElement(reactServido.Provider, { value: servido, children: props.children });
+    return React.createElement(servidoReactContext.Provider, { value: servido, children: props.children });
 }
 
 export interface ServidoProviderProps<S extends Servido> {

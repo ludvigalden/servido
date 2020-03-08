@@ -70,7 +70,7 @@ export function useServido<S extends Servido>(servido: Class<S> | S, ...args: an
 const INITIAL_VALUE: never = Symbol("initial") as never;
 
 /** Allows `get` and `clear` for a value based on the identiety of the passed `deps`, as well as being cleared on unmount. */
-export function useClearedMemo<T>(get: () => T, clear: (previousValue: T) => void, deps: readonly any[]) {
+export function useClearedMemo<T>(get: () => T, clear: (previousValue: T) => void, deps: readonly any[] = []) {
     const valueRef = React.useRef<T>(INITIAL_VALUE);
 
     React.useMemo(() => {

@@ -35,7 +35,7 @@
 		"test": "tsdx test",
 		"lint": "tsdx lint",
 		"precommit": "lint-staged",
-		"prepublish": "npm run build && ls -al && cp ./{package.json,README.md,LICENSE} ./dist",
+		"prepublish": "npm run build && ls -al && cp package.json ./dist && cp README.md ./dist && cp LICENSE ./dist",
 		"publish-canary": "lerna version prerelease --preid canary --force-publish && release --pre",
 		"publish-stable": "lerna version --force-publish && release && node ./scripts/release-notes.js",
 		"prebuild": "rimraf dist",
