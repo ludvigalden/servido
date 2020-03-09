@@ -1,5 +1,6 @@
 import { ServiceAsync } from "./service-async";
 import { ServiceContext } from "./service-context";
+import { ServiceContextProvider, useServiceContext } from "./service-react.context";
 import { useService, useConstructing, uniqueServiceDependent } from "./service-react.hooks";
 import { ServiceProvider } from "./service-react.provider";
 import { requireService, RequireServiceProps } from "./service.require";
@@ -17,6 +18,9 @@ export class Servido extends Service {
     static Provider = ServiceProvider;
     /** Contains the currently constructed services, dependents and requirements. */
     static Context = ServiceContext;
+    /** Provides the `ServiceContext` for requiring contexts to its children, meaning its children and its children only will be sharing context.
+     * If a component using a service is not contained by this provider, it will be sharing context with all other components that are lacking context. */
+    static ContextProvider: typeof ServiceContextProvider;
 
     /** If the service accepts arguments, those can be passed as additional arguments to the hook. Whenever the passed service or arguments change, a new instance may or may not be constructed.
      * If an instance of the service has been provided by a parent using `ServiceProvider`, that instance will be preferred unless there is a mismatch of arguments. */
@@ -48,6 +52,11 @@ export class Servido extends Service {
     /** Check if any of the passed services are currently constructing and react to when the construction resolves. */
     static useConstructing(...services: Service[]) {
         return useConstructing(...services);
+    }
+
+    /** Use the `ServiceContext` provided, or default to the global context that is shared by all other components not being contained by a provider. */
+    static useContext() {
+        return useServiceContext();
     }
 
     /** Resolve the promise returned by the `constructorAsync` method of every passed `ServiceAsync`. */
