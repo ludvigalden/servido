@@ -1,6 +1,6 @@
 import { Class, ServiceIdentifier } from "./service.types";
-import { serviceIdentifier } from "./service.util";
-import { ServiceContext } from "./service.context";
+import { serviceIdentifier } from "./service.fns";
+import { ServiceContext } from "./service-context";
 import { Service } from "./service";
 
 export function constructService<S extends Service, A extends any[]>(props: ConstructServiceProps<S, A>): S;
@@ -47,6 +47,8 @@ export function constructService(props: ConstructServiceProps<Service, any[]>) {
     } else {
         delete service[Service.key.context];
     }
+
+    Service.construct(service);
 
     return service;
 }

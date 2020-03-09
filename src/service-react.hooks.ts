@@ -1,24 +1,15 @@
 import React from "react";
 
-import {
-    Service,
-    Class,
-    requireService,
-    serviceIdentifier,
-    ServiceDependent,
-    forgoService,
-    filterErrorStack,
-    getClassThunkConstructor,
-} from "../core";
-
+import { Class, ServiceDependent } from "./service.types";
+import { forgoService } from "./service.forgo";
+import { filterErrorStack, getClassThunkConstructor, serviceIdentifier } from "./service.fns";
 import { useServiceContext, reactServiceContexts } from "./service-react.context";
+import { Service } from "./service";
+import { requireService } from "./service.require";
+import { constructingServices, resolveServices } from "./service.util";
 
 const fallbackReactContextType = React.createContext<Service | undefined>(undefined);
 
-/**
- * Use a `Service` inside a component, with or without arguments. If the passed service or arguments change, a new instance will be required if appropriate.
- * If the service has been provided by a parent `ServiceProvider` with matching arguments, that will be preferred over looking through the nearest `ServiceContext` (which can also be provided).
- */
 /** If the service accepts arguments, those can be passed as additional arguments to the hook. Whenever the passed service or arguments change, a new instance may or may not be constructed.
  * If an instance of the service has been provided by a parent using `ServiceProvider`, that instance will be preferred unless there is a mismatch of arguments. */
 export function useService<S extends Service>(service: Class<S, []> | S): S;
@@ -80,6 +71,30 @@ export function useService<S extends Service>(service: Class<S> | S, ...args: an
     } catch (error) {
         throw filterErrorStack(error);
     }
+}
+
+/** Check if any of the passed services are currently constructing and react to when the construction resolves. */
+export function useConstructing(...services: Service[]) {
+    const [constructing, setConstructing] = React.useState(() => constructingServices(...services));
+
+    const checking = React.useRef<symbol>();
+
+    React.useMemo(() => {
+        const thisChecking = (checking.current = Symbol());
+        const constructingCurrent = constructingServices(...services);
+
+        if (constructing !== constructingCurrent) {
+            setConstructing(constructingCurrent);
+        }
+
+        resolveServices(...services).then(() => {
+            if (checking.current === thisChecking) {
+                setConstructing(false);
+            }
+        });
+    }, services);
+
+    return constructing;
 }
 
 const INITIAL_VALUE: never = Symbol("initial") as never;

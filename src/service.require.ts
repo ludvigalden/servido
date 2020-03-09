@@ -1,10 +1,9 @@
-import { ServiceAsync } from "../async/service-async";
-
+import { ServiceAsync } from "./service-async";
 import { constructService } from "./service.construct";
-import { ServiceContext } from "./service.context";
+import { ServiceContext } from "./service-context";
 import { Service } from "./service";
 import { Class, ServiceDependent, ServiceIdentifier } from "./service.types";
-import { isClass, serviceIdentifier, getClassThunkConstructor, filterErrorStack } from "./service.util";
+import { isClass, serviceIdentifier, getClassThunkConstructor, filterErrorStack } from "./service.fns";
 
 /** Create a dependency of the `service`. If the service accepts arguments, those can be passed using the `args` prop. If no arguments are passed or if there
  * has already been a constructed instance with the same identifiable arguments, that will be preferred over constructing a new instance. */
@@ -126,7 +125,7 @@ export function requireService(props: RequireServiceProps<Service, any[]>) {
     return constructed;
 }
 
-interface RequireServiceProps<S extends Service, A extends any[]> {
+export interface RequireServiceProps<S extends Service, A extends any[]> {
     /** The service */
     service: S | Class<S, A>;
     dependent: ServiceDependent;

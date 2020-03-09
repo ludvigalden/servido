@@ -12,7 +12,8 @@ export function isClass<T, A extends any[]>(obj: any): obj is Class<T, A> {
     return isConstructor;
 }
 
-export function serviceIdentifier<A extends any[]>(args: A | undefined): ServiceIdentifier | undefined {
+/** Generate a `ServiceIdentifier` for a set of passed arguments. */
+export function serviceIdentifier<A extends any[]>(args: A | undefined): ServiceIdentifier {
     if (!args) {
         return undefined;
     }

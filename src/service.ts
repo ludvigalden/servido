@@ -1,7 +1,7 @@
+import { ServiceContext } from "./service-context";
+import { ServiceIdentifier, Class } from "./service.types";
+import { clearServiceDependent, forgoService } from "./service.forgo";
 import { requireService } from "./service.require";
-import { ServiceContext } from "./service.context";
-import { Class, ServiceIdentifier } from "./service.types";
-import { forgoService, clearDependent } from "./service.forgo";
 
 /** The class which all services must extend, allowing for requiring and forgoing other services as well as managing the construct/deconstruct lifecycle. */
 export class Service {
@@ -43,6 +43,8 @@ export class Service {
     private $context?: ServiceContext;
     private $deconstructFns?: Set<Function>;
 
+    static construct(_service: Service) {}
+
     static deconstruct(service: Service) {
         if (typeof service.deconstruct === "function") {
             service.deconstruct();
@@ -60,18 +62,9 @@ export class Service {
             deconstructFns.clear();
         }
 
-        clearDependent({ dependent: service, context: service[Service.key.context] });
-    }
+        clearServiceDependent({ dependent: service, context: service[Service.key.context] });
 
-    static require<S extends Service>(service: Class<S, []> | S): S;
-    static require<S extends Service, A extends any[]>(service: Class<S, A> | S, ...arguments_: A): S;
-    static require(service: Class<Service> | Service, ...args: any[]): any {
-        return requireService({ service, dependent: Service, args });
-    }
-
-    /** Forgos a Service that has previously been required. */
-    static forgo<S extends Service>(service: S) {
-        return forgoService({ service, dependent: Service });
+        return service;
     }
 
     /** Private properties of a `Service`. */

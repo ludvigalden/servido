@@ -9,7 +9,7 @@
 
 <br>
 
-[![Stable Release](https://img.shields.io/npm/v/servido.svg)](https://npm.im/formik)
+[![Stable Release](https://img.shields.io/npm/v/servido.svg)](https://npm.im/servido)
 [![Blazing Fast](https://badgen.now.sh/badge/speed/blazing%20%F0%9F%94%A5/green)](https://npm.im/servido)
 [![gzip size](http://img.badgesize.io/https://unpkg.com/servido@latest/dist/servido.umd.production.min.js?compression=gzip)](https://unpkg.com/servido@latest/dist/servido.umd.production.min.js)
 [![license](https://badgen.now.sh/badge/license/MIT)](./LICENSE)
@@ -68,7 +68,7 @@ This is essentially all that Servido is all about - making sure that the instanc
 
 The functionality of some services are by nature asynchronous, for instance an authentication state like below. This can be implemented by extending the `ServiceAsync` class and defining the `constructorAsync` method.
 
-The promise returned by the `constructorAsync` method will also be used to define the special property `ServiceAsync.constructing`. This is an instance of type `ServiceConstructingStatus` which allows for the methods `start`, `stop`, and `use` and exposes the current status by the property `current`.
+The promise returned by the `constructorAsync` method will be assigned to the instance in order to handle the `resolveServices` and `constructedServices` utility.
 
 ```tsx
 import { ServiceAsync } from "servido";

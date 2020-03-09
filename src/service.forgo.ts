@@ -1,7 +1,7 @@
-import { ServiceContext } from "./service.context";
+import { ServiceContext } from "./service-context";
 import { Service } from "./service";
 import { ServiceDependent } from "./service.types";
-import { filterErrorStack } from "./service.util";
+import { filterErrorStack } from "./service.fns";
 
 /** Removes the `dependent` from the `service` and the `requirement` of the `service` from the `dependent`.
  * If the forgone service has no more dependents, it will be deconstructed and removed from memory. */
@@ -86,7 +86,7 @@ export function forgoService<S extends Service>(props: ForgoServiceProps<S>) {
     }
 }
 
-interface ForgoServiceProps<S extends Service> {
+export interface ForgoServiceProps<S extends Service> {
     /** The service to forgo from the dependent. */
     service: S;
     dependent: ServiceDependent;
@@ -94,7 +94,7 @@ interface ForgoServiceProps<S extends Service> {
 }
 
 /** Removes all of the requirements of the `dependent`. If any one of the forgone services has no more dependents, it will be deconstructed and removed from memory. */
-export function clearDependent(props: ClearDependentProps) {
+export function clearServiceDependent(props: ClearServiceDependentProps) {
     const context = ServiceContext.get(props.context);
 
     const requirements = context.requirements.get(props.dependent);
@@ -104,7 +104,7 @@ export function clearDependent(props: ClearDependentProps) {
     }
 }
 
-interface ClearDependentProps {
+export interface ClearServiceDependentProps {
     dependent: ServiceDependent;
     context?: ServiceContext;
 }

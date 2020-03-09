@@ -1,6 +1,8 @@
 import React from "react";
 
-import { ServiceContext, Class, Service, ServiceIdentifier } from "../core";
+import { ServiceContext } from "./service-context";
+import { Class, ServiceIdentifier } from "./service.types";
+import { Service } from "./service";
 
 export const reactServiceContext = React.createContext<ServiceContext>(ServiceContext.get());
 export const reactServiceContexts = new Map<Class<Service> | Service, Map<ServiceIdentifier, React.Context<Service>>>();

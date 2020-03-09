@@ -1,19 +1,13 @@
 import React from "react";
 
-import {
-    Service,
-    serviceIdentifier,
-    isClass,
-    constructService,
-    ServiceIdentifier,
-    Class,
-    getClassThunkConstructor,
-    filterErrorStack,
-} from "../core";
-
 import { useServiceContext, reactServiceContexts } from "./service-react.context";
 import { useClearedMemo } from "./service-react.hooks";
+import { serviceIdentifier, isClass, getClassThunkConstructor, filterErrorStack } from "./service.fns";
+import { ServiceIdentifier, Class } from "./service.types";
+import { constructService } from "./service.construct";
+import { Service } from "./service";
 
+/** Constructs and provides a `service` to its children, no matter if it has already been constructed in the context. Does not add the instance to the relevant `ServiceContext`. */
 export function ServiceProvider<S extends Service>(props: React.PropsWithChildren<ServiceProviderProps<S>>): JSX.Element;
 export function ServiceProvider<S extends Service, A extends any[]>(
     props: React.PropsWithChildren<ServiceProviderPropsWithArgs<S, A>>,
@@ -51,10 +45,16 @@ export function ServiceProvider<S extends Service>(props: React.PropsWithChildre
 
     try {
         service = useClearedMemo<{ constructed: S; service: undefined } | { constructed: undefined; service: S }>(
-            () =>
-                isClass(props.service)
-                    ? { constructed: constructService<S, any[]>({ service: props.service, args: props.args, context }), service: undefined }
-                    : { constructed: undefined, service: props.service },
+            () => {
+                if (isClass(props.service)) {
+                    return {
+                        constructed: constructService<S, any[]>({ service: props.service, args: props.args, context }),
+                        service: undefined,
+                    };
+                } else {
+                    return { constructed: undefined, service: props.service };
+                }
+            },
             ({ constructed }) => {
                 if (constructed) {
                     Service.deconstruct(constructed);
