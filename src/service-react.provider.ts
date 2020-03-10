@@ -2,7 +2,7 @@ import React from "react";
 
 import { useServiceContext, reactServiceContexts } from "./service-react.context";
 import { useClearedMemo } from "./service-react.hooks";
-import { serviceIdentifier, isClass, getClassThunkConstructor, filterErrorStack } from "./service.fns";
+import { serviceIdentifier, isClass, getClassThunkConstructor } from "./service.fns";
 import { ServiceIdentifier, Class } from "./service.types";
 import { constructService } from "./service.construct";
 import { Service } from "./service";
@@ -41,30 +41,24 @@ export function ServiceProvider<S extends Service>(props: React.PropsWithChildre
         return serviceReactContext as React.Context<S>;
     }, [identifier, props.service]);
 
-    let service: { constructed: S; service: undefined } | { constructed: undefined; service: S };
-
-    try {
-        service = useClearedMemo<{ constructed: S; service: undefined } | { constructed: undefined; service: S }>(
-            () => {
-                if (isClass(props.service)) {
-                    return {
-                        constructed: constructService<S, any[]>({ service: props.service, args: props.args, context }),
-                        service: undefined,
-                    };
-                } else {
-                    return { constructed: undefined, service: props.service };
-                }
-            },
-            ({ constructed }) => {
-                if (constructed) {
-                    Service.deconstruct(constructed);
-                }
-            },
-            [props.service, context, ...(props.args || [])],
-        );
-    } catch (error) {
-        throw filterErrorStack(error);
-    }
+    const service = useClearedMemo<{ constructed: S; service: undefined } | { constructed: undefined; service: S }>(
+        () => {
+            if (isClass(props.service)) {
+                return {
+                    constructed: constructService<S, any[]>({ service: props.service, args: props.args, context }),
+                    service: undefined,
+                };
+            } else {
+                return { constructed: undefined, service: props.service };
+            }
+        },
+        ({ constructed }) => {
+            if (constructed) {
+                Service.deconstruct(constructed);
+            }
+        },
+        [props.service, context, ...(props.args || [])],
+    );
 
     return React.createElement(serviceReactContext.Provider, {
         value: (service.constructed || service.service) as S,

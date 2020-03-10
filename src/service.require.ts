@@ -3,7 +3,7 @@ import { constructService } from "./service.construct";
 import { ServiceContext } from "./service-context";
 import { Service } from "./service";
 import { Class, ServiceDependent, ServiceIdentifier } from "./service.types";
-import { isClass, serviceIdentifier, getClassThunkConstructor, filterErrorStack } from "./service.fns";
+import { isClass, serviceIdentifier, getClassThunkConstructor } from "./service.fns";
 
 /** Create a dependency of the `service`. If the service accepts arguments, those can be passed using the `args` prop. If no arguments are passed or if there
  * has already been a constructed instance with the same identifiable arguments, that will be preferred over constructing a new instance. */
@@ -61,11 +61,9 @@ export function requireService(props: RequireServiceProps<Service, any[]>) {
             }
 
             if (error instanceof RangeError) {
-                throw filterErrorStack(
-                    new CircularDependencyError(`${props.service.name} is requiring one or more services that require itself`),
-                );
+                throw new CircularDependencyError(`${props.service.name} is requiring one or more services that require itself`);
             } else {
-                throw filterErrorStack(error);
+                throw error;
             }
         }
     }
@@ -89,15 +87,10 @@ export function requireService(props: RequireServiceProps<Service, any[]>) {
         if (constructed instanceof ServiceAsync) {
             if (!context.constructedAsync.has(constructed)) {
                 const promise = Promise.resolve().then(() => constructPromise);
+
                 context.constructedAsync.set(constructed, promise);
 
-                let constructPromise: Promise<void> | void;
-
-                try {
-                    constructPromise = ServiceAsync.constructAsync(constructed);
-                } catch (error) {
-                    throw filterErrorStack(error);
-                }
+                const constructPromise: Promise<void> | void = ServiceAsync.constructAsync(constructed);
             }
         }
 

@@ -1,7 +1,6 @@
 import { ServiceContext } from "./service-context";
 import { Service } from "./service";
 import { ServiceDependent } from "./service.types";
-import { filterErrorStack } from "./service.fns";
 
 /** Removes the `dependent` from the `service` and the `requirement` of the `service` from the `dependent`.
  * If the forgone service has no more dependents, it will be deconstructed and removed from memory. */
@@ -78,11 +77,7 @@ export function forgoService<S extends Service>(props: ForgoServiceProps<S>) {
             }
         }
 
-        try {
-            Service.deconstruct(props.service);
-        } catch (error) {
-            throw filterErrorStack(error);
-        }
+        Service.deconstruct(props.service);
     }
 }
 

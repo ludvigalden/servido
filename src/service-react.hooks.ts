@@ -2,7 +2,7 @@ import React from "react";
 
 import { Class, ServiceDependent } from "./service.types";
 import { forgoService } from "./service.forgo";
-import { filterErrorStack, getClassThunkConstructor, serviceIdentifier } from "./service.fns";
+import { getClassThunkConstructor, serviceIdentifier } from "./service.fns";
 import { useServiceContext, reactServiceContexts } from "./service-react.context";
 import { Service } from "./service";
 import { requireService } from "./service.require";
@@ -38,41 +38,35 @@ export function useService<S extends Service>(service: Class<S> | S, ...args: an
 
     const context = useServiceContext();
 
-    try {
-        const current = useClearedMemo(
-            () => {
-                let next: { dependent: ServiceDependent | undefined; service: S; context: ServiceContext | undefined };
+    return useClearedMemo(
+        () => {
+            let next: { dependent: ServiceDependent | undefined; service: S; context: ServiceContext | undefined };
 
-                if (reactContextService && (id == null || reactContextService[Service.key.id] === id)) {
-                    next = { dependent: undefined, service: reactContextService, context: undefined };
-                } else {
-                    const dependent = uniqueServiceDependent();
+            if (reactContextService && (id == null || reactContextService[Service.key.id] === id)) {
+                next = { dependent: undefined, service: reactContextService, context: undefined };
+            } else {
+                const dependent = uniqueServiceDependent();
 
-                    next = {
-                        dependent,
-                        service: requireService({ service, dependent, context, args }),
-                        context,
-                    };
-                }
+                next = {
+                    dependent,
+                    service: requireService({ service, dependent, context, args }),
+                    context,
+                };
+            }
 
-                return next;
-            },
-            (previous) => {
-                if (!previous) {
-                    return;
-                }
+            return next;
+        },
+        (previous) => {
+            if (!previous) {
+                return;
+            }
 
-                if (previous.dependent) {
-                    forgoService({ service: previous.service, dependent: previous.dependent, context: previous.context });
-                }
-            },
-            [service, id, context, reactContextService],
-        );
-
-        return current.service;
-    } catch (error) {
-        throw filterErrorStack(error);
-    }
+            if (previous.dependent) {
+                forgoService({ service: previous.service, dependent: previous.dependent, context: previous.context });
+            }
+        },
+        [service, id, context, reactContextService],
+    ).service;
 }
 
 /** Check if any of the passed services are currently constructing and react to when the construction resolves. */
