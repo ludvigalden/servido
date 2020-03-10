@@ -1,14 +1,14 @@
-import Servido, { CircularDependencyError } from "../src";
+import servido, { Service, CircularDependencyError } from "../src";
 import { isClass, getClassThunkConstructor } from "../src/service.fns";
 
 describe("service core", () => {
     const dependent = 0;
-    const context = Servido.Context.get();
+    const context = servido.Context.get();
 
     let serviceA: ServiceA;
 
     it("constructs", () => {
-        serviceA = Servido.require({ service: ServiceA, dependent, context });
+        serviceA = servido.require({ service: ServiceA, dependent, context });
         expect(serviceA.value).toEqual(2);
     });
 
@@ -23,7 +23,7 @@ describe("service core", () => {
         expect(context.constructors.get(serviceA)).toEqual(ServiceA);
 
         if (constructed) {
-            const identifier = Servido.identifier(undefined);
+            const identifier = servido.identifier(undefined);
             const service = constructed.get(identifier);
 
             expect(service).toBeDefined();
@@ -39,7 +39,7 @@ describe("service core", () => {
     });
 
     it("constructs new with different context", () => {
-        const newServiceA = Servido.require({ service: ServiceA, dependent, context: new Servido.Context() });
+        const newServiceA = servido.require({ service: ServiceA, dependent, context: new servido.Context() });
         expect(newServiceA === serviceA).toEqual(false);
     });
 
@@ -56,7 +56,7 @@ describe("service core", () => {
     let serviceB: ServiceB;
 
     it("requires link", () => {
-        serviceB = Servido.require({ service: ServiceB, dependent, context });
+        serviceB = servido.require({ service: ServiceB, dependent, context });
         expect(getClassThunkConstructor(serviceB.a)).toEqual(ServiceA);
         expect(serviceB.a).toEqual(serviceA);
         expect(context.requirements.get(serviceB)).toContain(serviceA);
@@ -67,7 +67,7 @@ describe("service core", () => {
         let error: Error | undefined;
 
         try {
-            Servido.require({ service: ServiceY, dependent, context });
+            servido.require({ service: ServiceY, dependent, context });
         } catch (_error) {
             error = _error;
         }
@@ -79,13 +79,13 @@ describe("service core", () => {
     });
 
     it("deconstructs", () => {
-        serviceA = Servido.require({ service: ServiceA, dependent, context });
-        serviceB = Servido.require({ service: ServiceB, dependent, context });
+        serviceA = servido.require({ service: ServiceA, dependent, context });
+        serviceB = servido.require({ service: ServiceB, dependent, context });
 
         expect(context.requirements.get(serviceB)).toContain(serviceA);
         expect(context.dependents.get(serviceA)).toContain(serviceB);
 
-        Servido.forgo({ service: serviceB, dependent, context });
+        servido.forgo({ service: serviceB, dependent, context });
 
         expect(context.constructed.get(ServiceB)).toBeUndefined();
         expect(context.requirements.get(serviceB)).toBeUndefined();
@@ -96,7 +96,7 @@ describe("service core", () => {
 
         expect(context.dependents.get(serviceA)).toContain(dependent);
 
-        Servido.forgo({ service: serviceA, dependent, context });
+        servido.forgo({ service: serviceA, dependent, context });
 
         expect(context.constructed.get(ServiceA)).toBeUndefined();
         expect(context.dependents.get(serviceA)).toBeUndefined();
@@ -107,7 +107,7 @@ describe("service core", () => {
         expect(context.constructed.size).toEqual(0);
     });
 
-    class ServiceA extends Servido {
+    class ServiceA extends Service {
         value = 1;
 
         constructor() {
@@ -117,7 +117,7 @@ describe("service core", () => {
         }
     }
 
-    class ServiceB extends Servido {
+    class ServiceB extends Service {
         a: ServiceA;
 
         constructor() {
@@ -127,7 +127,7 @@ describe("service core", () => {
         }
     }
 
-    class ServiceX extends Servido {
+    class ServiceX extends Service {
         y: ServiceY;
 
         constructor() {
@@ -137,7 +137,7 @@ describe("service core", () => {
         }
     }
 
-    class ServiceY extends Servido {
+    class ServiceY extends Service {
         x: ServiceX;
 
         constructor() {

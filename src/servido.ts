@@ -10,10 +10,12 @@ import { Service } from "./service";
 import { Class, ServiceIdentifier } from "./service.types";
 import { constructingServices, resolveServices } from "./service.util";
 
-/** The class which all services must extend, allowing for requiring and forgoing other services as well as managing the construct/deconstruct lifecycle. */
-export class Servido extends Service {
+/** Provides the exports of `servido`. */
+export class servido {
+    /** The class which all services must extend, allowing for requiring and forgoing other services as well as managing the construct/deconstruct lifecycle. */
+    static Service = Service;
     /** The class which all asynchronous and circularly-requiring services must extend. The promise returned by the `constructorAsync` method will define the constructing status. */
-    static Async = ServiceAsync;
+    static ServiceAsync = ServiceAsync;
     /** Constructs and provides a `service` to its children, no matter if it has already been constructed in the context. Does not add the instance to the relevant `ServiceContext`. */
     static Provider = ServiceProvider;
     /** Contains the currently constructed services, dependents and requirements. */
@@ -34,7 +36,7 @@ export class Servido extends Service {
      * has already been a constructed instance with the same identifiable arguments, that will be preferred over constructing a new instance. */
     static require<S extends Service, A extends any[]>(props: RequireServiceProps<S, A>): S;
     static require<S extends Service>(props: RequireServiceProps<S, []>): S;
-    static require(props: RequireServiceProps<Service, any[]>) {
+    static require(props: RequireServiceProps<Service, any>) {
         return requireService(props);
     }
 
