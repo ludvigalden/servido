@@ -10,6 +10,6 @@ export { Service } from "./service";
 export { ServiceDependent, ServiceIdentifier, Class } from "./service.types";
 export { constructingServices, resolveServices } from "./service.util";
 
-import { Servido } from "./servido";
+import { servido } from "./servido";
 
-export default Servido;
+export default servido;

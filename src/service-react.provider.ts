@@ -60,7 +60,7 @@ export function ServiceProvider<S extends Service>(props: React.PropsWithChildre
                     Service.deconstruct(constructed);
                 }
             },
-            [props.service, ...(props.args || [])],
+            [props.service, context, ...(props.args || [])],
         );
     } catch (error) {
         throw filterErrorStack(error);

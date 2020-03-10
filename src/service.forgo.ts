@@ -26,7 +26,7 @@ export function forgoService<S extends Service>(props: ForgoServiceProps<S>) {
 
     if (dependents) {
         if (circularRequirements) {
-            [...circularRequirements].forEach((circularRequirement) => {
+            Array.from(circularRequirements).forEach((circularRequirement) => {
                 if (context.constructors.has(circularRequirement)) {
                     const circularRequirementDependents = context.dependents.get(circularRequirement);
 
@@ -100,7 +100,7 @@ export function clearServiceDependent(props: ClearServiceDependentProps) {
     const requirements = context.requirements.get(props.dependent);
 
     if (requirements) {
-        [...requirements].forEach((service) => forgoService({ ...props, service }));
+        Array.from(requirements).forEach((service) => forgoService({ ...props, service }));
     }
 }
 

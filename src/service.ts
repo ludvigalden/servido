@@ -53,11 +53,7 @@ export class Service {
         const deconstructFns = service[Service.key.deconstructFns];
 
         if (deconstructFns) {
-            for (const deconstructFn of deconstructFns.values()) {
-                if (typeof deconstructFn === "function") {
-                    deconstructFn();
-                }
-            }
+            Array.from(deconstructFns).forEach((deconstructFn) => typeof deconstructFn === "function" && deconstructFn());
 
             deconstructFns.clear();
         }

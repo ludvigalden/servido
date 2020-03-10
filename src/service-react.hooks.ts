@@ -7,6 +7,7 @@ import { useServiceContext, reactServiceContexts } from "./service-react.context
 import { Service } from "./service";
 import { requireService } from "./service.require";
 import { constructingServices, resolveServices } from "./service.util";
+import { ServiceContext } from "./service-context";
 
 const fallbackReactContextType = React.createContext<Service | undefined>(undefined);
 
@@ -40,16 +41,17 @@ export function useService<S extends Service>(service: Class<S> | S, ...args: an
     try {
         const current = useClearedMemo(
             () => {
-                let next: { dependent: ServiceDependent | undefined; service: S };
+                let next: { dependent: ServiceDependent | undefined; service: S; context: ServiceContext | undefined };
 
                 if (reactContextService && (id == null || reactContextService[Service.key.id] === id)) {
-                    next = { dependent: undefined, service: reactContextService };
+                    next = { dependent: undefined, service: reactContextService, context: undefined };
                 } else {
                     const dependent = uniqueServiceDependent();
 
                     next = {
                         dependent,
                         service: requireService({ service, dependent, context, args }),
+                        context,
                     };
                 }
 
@@ -61,7 +63,7 @@ export function useService<S extends Service>(service: Class<S> | S, ...args: an
                 }
 
                 if (previous.dependent) {
-                    forgoService({ service: previous.service, dependent: previous.dependent });
+                    forgoService({ service: previous.service, dependent: previous.dependent, context: previous.context });
                 }
             },
             [service, id, context, reactContextService],
