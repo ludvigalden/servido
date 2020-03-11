@@ -70,7 +70,7 @@ export function useService<S extends Service>(service: Class<S> | S, ...args: an
 }
 
 /** Check if any of the passed services are currently constructing and react to when the construction resolves. */
-export function useConstructing(...services: Service[]) {
+export function useConstructingServices(...services: Service[]) {
     const [constructing, setConstructing] = React.useState(() => constructingServices(...services));
 
     const checking = React.useRef<symbol>();

@@ -1,7 +1,7 @@
 import { ServiceAsync } from "./service-async";
 import { ServiceContext } from "./service-context";
 import { ServiceContextProvider, useServiceContext } from "./service-react.context";
-import { useService, useConstructing, uniqueServiceDependent } from "./service-react.hooks";
+import { useService, useConstructingServices, uniqueServiceDependent } from "./service-react.hooks";
 import { ServiceProvider } from "./service-react.provider";
 import { requireService, RequireServiceProps } from "./service.require";
 import { serviceIdentifier } from "./service.fns";
@@ -53,7 +53,7 @@ export class servido {
 
     /** Check if any of the passed services are currently constructing and react to when the construction resolves. */
     static useConstructing(...services: Service[]) {
-        return useConstructing(...services);
+        return useConstructingServices(...services);
     }
 
     /** Use the `ServiceContext` provided, or default to the global context that is shared by all other components not being contained by a provider. */
