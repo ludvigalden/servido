@@ -68,10 +68,10 @@ This is essentially all that Servido is all about - making sure that the instanc
 
 The functionality of some services are by nature asynchronous, for instance an authentication state like below. This can be implemented by extending the `ServiceAsync` class and defining the `constructorAsync` method.
 
-The promise returned by the `constructorAsync` method will be assigned to the instance in order to handle the `resolveServices` and `constructedServices` utility.
+The promise returned by the `constructorAsync` method will be assigned to the instance in order to handle the `resolveServices` and `constructingServices` utility.
 
 ```tsx
-import { ServiceAsync } from "servido";
+import { ServiceAsync, constructingServices, resolveServices } from "servido";
 
 class Auth extends ServiceAsync {
     authenticated: boolean;
@@ -93,24 +93,20 @@ class TodosFetcher extends ServiceAsync {
     }
 
     protected async constructorAsync() {
-        await this.auth.constructing.onDone();
+        // possibly true
+        constructingServices(this.auth)
 
-        this.todos = await fetch("/todos");
+        await resolveServices(this.auth)
+
+        // false
+        constructingServices(this.auth)
+
+        if (this.auth.authenticated) {
+            this.todos = await fetch("/todos");
+        }
     }
 }
 
-
-function App() {
-    const auth = useService(Auth);
-
-    if (auth.constructing.use()) {
-        return <p>Loading</p>;
-    } else if (!auth.authenticated) {
-        return <p>No access</p>;
-    }
-
-    return <p>Welcome</p>;
-}
 ```
 
 ## Arguments
@@ -118,7 +114,7 @@ function App() {
 Say we want a service used specifically for a value with a certain certain identifier. In the following code, every `<TodoItem />` will access the instance with the same defined `todoId` as the passed component prop. Additionally, if the passed argument to `useService` changes, a new instance may or may not be constructed.
 
 ```tsx
-import { ServiceAsync, useService } from "servido";
+import { ServiceAsync, useService, useConstructingServices } from "servido";
 
 class TodoService extends ServiceAsync {
     current: Todo;
@@ -134,12 +130,11 @@ class TodoService extends ServiceAsync {
 
 function TodoItem(props: { todoId: number; }) {
     const todo = useService(TodoService, props.todoId);
+    const constructing = useConstructingServices(todo);
 
-    if (todo.constructing.use()) {
+    if (constructing) {
         return <p>Loading</p>
-    }
-
-    if (!todo.current) {
+    } else if (!todo.current) {
         return <p>None found</p>
     }
 
