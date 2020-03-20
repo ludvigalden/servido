@@ -1,3 +1,4 @@
+import { digest } from "./service.object-hash";
 import { Class, ServiceIdentifier } from "./service.types";
 
 export function isClass<T, A extends any[]>(obj: any): obj is Class<T, A> {
@@ -18,13 +19,13 @@ export function serviceIdentifier<A extends any[]>(args: A | undefined): Service
         return undefined;
     }
 
-    args = args.filter((argument) => argument != null) as A;
+    args = args.map((arg) => (arg == null ? undefined : arg)) as A;
 
-    if (args.length <= 1) {
-        return args[0];
+    if (args.length <= 1 && typeof args[0] !== "object") {
+        return args[0] != null ? args[0] : undefined;
     }
 
-    return args.map((argument) => String(argument)).join();
+    return digest(args);
 }
 
 export function getClassThunkConstructor<T, A extends any[]>(classThunk: Class<T, A> | T): Class<T, A> {

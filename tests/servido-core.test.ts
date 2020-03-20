@@ -1,5 +1,5 @@
 import servido, { Service, CircularDependencyError } from "../src";
-import { isClass, getClassThunkConstructor } from "../src/service.fns";
+import { isClass, getClassThunkConstructor, serviceIdentifier } from "../src/service.fns";
 
 describe("service core", () => {
     const dependent = 0;
@@ -146,4 +146,62 @@ describe("service core", () => {
             this.x = this.require(ServiceX);
         }
     }
+
+    it("hashes arguments correctly", () => {
+        const args = {
+            a: [{ a: 1, b: 2, service: serviceA }],
+            b: [{ b: 2, a: 1, service: serviceB }],
+            c: [{ b: 2, a: 1, service: serviceA }],
+            d: [{ b: 2, a: 1, service: serviceB }],
+            e: [2],
+            f: ["2"],
+            g: [true],
+            h: [null, true],
+            i: [null, undefined, serviceA],
+            j: [null, null, serviceA],
+        };
+
+        const hashes = {
+            a: serviceIdentifier(args.a),
+            b: serviceIdentifier(args.b),
+            c: serviceIdentifier(args.c),
+            d: serviceIdentifier(args.d),
+            e: serviceIdentifier(args.e),
+            f: serviceIdentifier(args.f),
+            g: serviceIdentifier(args.g),
+            h: serviceIdentifier(args.h),
+            i: serviceIdentifier(args.i),
+            j: serviceIdentifier(args.j),
+        };
+
+        expect(hashes.a).not.toBe(hashes.b);
+        expect(hashes.a).toBe(hashes.c);
+        expect(hashes.b).toBe(hashes.d);
+        expect(hashes.e).not.toBe(hashes.f);
+        expect(hashes.g).not.toBe(hashes.h);
+        expect(hashes.i).toBe(hashes.j);
+
+        const service = serviceA || servido.require({ service: ServiceA, dependent, context });
+
+        const serviceIdentifier1 = serviceIdentifier([service]);
+        service.value = 10;
+        const serviceIdentifier2 = serviceIdentifier([service]);
+
+        expect(serviceIdentifier1).toEqual(serviceIdentifier2);
+
+        const typeIdentifierA = serviceIdentifier([ServiceA]);
+        (ServiceA as any).X = 2;
+        const typeIdentifierA2 = serviceIdentifier([ServiceA]);
+        const typeIdentifierB = serviceIdentifier([ServiceB]);
+        expect(typeIdentifierA).not.toEqual(typeIdentifierB);
+        expect(typeIdentifierA).toEqual(typeIdentifierA2);
+
+        const typeIdentifierAB = serviceIdentifier([ServiceA, ServiceB]);
+        (ServiceA as any).X = 3;
+        const typeIdentifierAB2 = serviceIdentifier([ServiceA, ServiceB]);
+        const typeIdentifierBA = serviceIdentifier([ServiceB, ServiceA]);
+
+        expect(typeIdentifierAB).not.toEqual(typeIdentifierBA);
+        expect(typeIdentifierAB).toEqual(typeIdentifierAB2);
+    });
 });
