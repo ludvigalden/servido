@@ -1,11 +1,13 @@
 import React from "react";
 
 import { useServiceContext, reactServiceContexts } from "./service-react.context";
-import { useClearedMemo } from "./service-react.hooks";
+import { useClearedMemo, uniqueServiceDependent } from "./service-react.hooks";
 import { serviceIdentifier, isClass, getClassThunkConstructor } from "./service.fns";
-import { ServiceIdentifier, Class } from "./service.types";
+import { ServiceIdentifier, Class, ServiceDependent } from "./service.types";
 import { constructService } from "./service.construct";
 import { Service } from "./service";
+import { requireService } from "./service.require";
+import { forgoService } from "./service.forgo";
 
 /** Constructs and provides a `service` to its children, no matter if it has already been constructed in the context. Does not add the instance to the relevant `ServiceContext`. */
 export function ServiceProvider<S extends Service>(props: React.PropsWithChildren<ServiceProviderProps<S>>): JSX.Element;
@@ -41,29 +43,49 @@ export function ServiceProvider<S extends Service>(props: React.PropsWithChildre
         return serviceReactContext as React.Context<S>;
     }, [identifier, props.service]);
 
-    const service = useClearedMemo<{ constructed: S; service: undefined } | { constructed: undefined; service: S }>(
+    const provided = useClearedMemo<Provided<S>>(
         () => {
             if (isClass(props.service)) {
-                return {
-                    constructed: constructService<S, any[]>({ service: props.service, args: props.args, context }),
-                    service: undefined,
-                };
+                const constructed = context.constructed.get(props.service);
+
+                if (constructed && constructed.has(identifier)) {
+                    // construct new and don't add it to the context
+                    return {
+                        service: constructService<S, any[]>({ service: props.service, args: props.args, context }),
+                        deconstruct: true,
+                    };
+                } else {
+                    const dependent = uniqueServiceDependent();
+
+                    return {
+                        service: requireService<S, any[]>({ service: props.service, args: props.args, context, dependent }),
+                        dependent,
+                    };
+                }
             } else {
-                return { constructed: undefined, service: props.service };
+                return { service: props.service };
             }
         },
-        ({ constructed }) => {
-            if (constructed) {
-                Service.deconstruct(constructed);
+        (provided) => {
+            if (provided.deconstruct) {
+                Service.deconstruct(provided.service);
+            } else if (provided.dependent) {
+                forgoService({ service: provided.service, context, dependent: provided.dependent });
             }
         },
-        [props.service, context, ...(props.args || [])],
+        [props.service, context, identifier],
     );
 
     return React.createElement(serviceReactContext.Provider, {
-        value: (service.constructed || service.service) as S,
+        value: provided.service,
         children: props.children,
     });
+}
+
+interface Provided<S> {
+    deconstruct?: boolean;
+    dependent?: ServiceDependent;
+    service: S;
 }
 
 export interface ServiceProviderProps<S extends Service> {
