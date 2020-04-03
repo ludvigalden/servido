@@ -15,6 +15,16 @@ export function constructService(props: ConstructServiceProps<Service, any[]>) {
         });
     }
 
+    const id = props.args ? serviceIdentifier(props.args) : props.id;
+
+    if (id != null) {
+        Object.defineProperty(props.service.prototype, Service.key.id, {
+            value: id,
+            configurable: true,
+            enumerable: false,
+        });
+    }
+
     let service: Service;
 
     if (props.args && props.args.length) {
@@ -23,9 +33,9 @@ export function constructService(props: ConstructServiceProps<Service, any[]>) {
         service = new props.service();
     }
 
-    const id = props.args ? serviceIdentifier(props.args) : props.id;
-
     if (id != null) {
+        delete props.service.prototype[Service.key.id];
+
         Object.defineProperty(service, Service.key.id, {
             value: id,
             configurable: false,
