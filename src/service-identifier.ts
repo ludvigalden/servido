@@ -23,12 +23,12 @@ function N(r: number[], a: string, enc: InputEncoding) {
     }
 }
 
-const O = function(a: number[], c: OutputEncoding) {
+const O = function (a: number[], c: OutputEncoding) {
     let r = null;
-    const s = function(e: any) {
+    const s = function (e: any) {
         return String.fromCharCode(e);
     };
-    const h = function(e: any) {
+    const h = function (e: any) {
         return e.toString(16);
     };
     switch (c) {
@@ -45,7 +45,7 @@ const O = function(a: number[], c: OutputEncoding) {
     return r;
 };
 
-const R = function(n: number, s: number) {
+const R = function (n: number, s: number) {
     return (n << s) | (n >>> (32 - s));
 };
 
@@ -119,10 +119,10 @@ function createHashSHA1() {
     const c: number[] = [];
     const r: number[] = [];
     return {
-        update: function(a: string, e: InputEncoding) {
+        update: function (a: string, e: InputEncoding) {
             N(c, a, e);
         },
-        digest: function(outputEncoding: OutputEncoding) {
+        digest: function (outputEncoding: OutputEncoding) {
             const n = c.length;
             for (let i = 0; i < n - 3; i += 4) {
                 r.push((c[i] << 24) | (c[i + 1] << 16) | (c[i + 2] << 8) | c[i + 3]);
@@ -149,7 +149,7 @@ function createHashSHA1() {
             r.push((n << 3) & 0x0ffffffff);
 
             return O(
-                SHA1(r).reduce(function(r: number[], a: number) {
+                SHA1(r).reduce(function (r: number[], a: number) {
                     for (let i = 7; i >= 0; --i) {
                         r.push((a >>> (i * 4)) & 0x0f);
                     }
@@ -163,7 +163,7 @@ function createHashSHA1() {
 
 const IC = [String, Number, Map, Set, Object];
 
-export function digest(
+export function hash(
     a: any,
     {
         inputEncoding = "utf8",
@@ -173,7 +173,7 @@ export function digest(
 ) {
     const h = createHashSHA1();
     const u = (...args: string[]) => h.update(args.join(":"), inputEncoding);
-    const d = (a: string) => digest(a, { inputEncoding, outputEncoding, sets });
+    const d = (a: string) => hash(a, { inputEncoding, outputEncoding, sets });
 
     switch (true) {
         // null or undefined

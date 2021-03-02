@@ -4,7 +4,7 @@
 </p>
 
 <h3 align="center">
-  Clear and logically sound services in React. &nbsp;⚗️
+  Versatile services for React &nbsp;⚗️
 </h3>
 
 <br>
@@ -16,186 +16,232 @@
 
 ---
 
-In any real-world React application, there is a need for sharing state and actions between components. For this purpose, people commonly use Redux, MobX or plain contexts.
+React provides great tools for working with the component lifecycle. In some applications, these tools would be sufficient. In large or complex applications, though, where components communicate with each other and use the same state extensively, using the tools provided by React requires you to write a lot of code that might not be very performant or easy to read. These are the very issues *servido* aims to be a solution for.
 
-Servido proposes a new way to structure these kinds of things, which was built with the following ideas in mind:
-
-- Shared state can be seperated into clearly defined parts (DRY)
-- Some parts of the state may depend on other parts
-- A component may only need a part of the state
-
-For instance, let's say we have an authentication state as well as a state for managing the creation of to-dos:
+Everything about servido builds on the idea of services. A service can be used by React components or other services. It can hold state, provide methods for executing actions, be constructed asynchronously or synchronously, use cached data, and essentially whatever you want to do. A service is defined by extending the exported `Service` class, like so:
 
 ```typescript
 import { Service } from "servido";
 
-class Auth extends Service {
-    authenticated: boolean;
-}
+export class MyUtilityService extends Service {
+    protected index: number = 0;
 
-class TodoRepo extends Service {
-    auth: Auth;
-
-    constructor() {
-        super();
-
-        this.auth = this.require(Auth);
-    }
-
-    create(todo: Todo) {
-        if (!this.auth.authenticated) {
-            throw
-        }
+    increment(): number {
+        return this.index++
     }
 }
 ```
 
-These can then be used inside a React component:
+## Using services
+
+- Services can be used by React components or other services.
+- Instances of services are shared between components or services within the same *instance context*.
+- A service is only constructed if there is no already constructed service instance matching the service query.
 
 ```typescript
+import { Service } from "servido";
+
+import { MyUtilityService } from "./my-utility-service";
+
+export class MyOtherService extends Service {
+    protected readonly util: MyUtilityService;
+
+    constructor() {
+        super();
+
+        this.util = this.require(MyUtilityService)
+    }
+}
+```
+
+```typescript
+import React from "react";
 import { useService } from "servido";
 
-function CreateTodos() {
-    const repo = useService(TodoRepo);
+import { MyOtherService } from "./my-other-service";
+import { MyUtilityService } from "./my-utility-service";
+
+export function MyComponent() {
+    const otherService = useService(MyOtherService);
+    const utilityService = useService(MyUtilityService);
+    // `otherService.util === utilityService`
+
+    return null;
 }
 ```
 
-Now, when `Todos` is mounted, `TodoRepo` will be constructed only if it has not been constructed already. Same with `Auth`, which `TodoRepo` depends on - if it has already been constructed, it will return the already constructed instance. Once a service no longer has any dependents, the instance will be removed from memory.
+## Identified services
 
-This is essentially all that Servido is all about - making sure that the instances are constructed and distributed logically. The rest of the documentation is more about smaller features and minor caveats.
+- If a service accepts arguments, an identifier is generated using the passed arguments when requiring or using a service.
+- The arguments can be all types of values.
+- If more than one argument or a non-primitive argument is passed, a hash is generated instead, and otherwise a string representation of the primitive value is used.
+- If only `undefined` arguments are passed, that is equal to passing no arguments.
+- If no arguments are passed, servido will return any instance of the service that has already been constructed, preferring an instance constructed with no arguments, or construct a new instance with no arguments passed to the constructor. That means "no arguments" mean "any arguments, but preferably no arguments".
 
-## Async constructors
+```typescript
+import { Service } from "servido";
 
-The functionality of some services are by nature asynchronous, for instance an authentication state like below. This can be implemented by extending the `ServiceAsync` class and defining the `constructorAsync` method.
+import { MyUtilityService } from "./my-utility-service";
 
-The promise returned by the `constructorAsync` method will be assigned to the instance in order to handle the `resolveServices` and `constructingServices` utility.
-
-```tsx
-import { ServiceAsync, constructingServices, resolveServices } from "servido";
-
-class Auth extends ServiceAsync {
-    authenticated: boolean;
-
-    protected async constructorAsync() {
-        this.authenticated = await fetch("/authentictated");
+export class MyIdentifiedService extends Service {
+    constructor(readonly myIdentifier: number) {
+        super();
     }
 }
 
-class TodosFetcher extends ServiceAsync {
-    auth: Auth;
+export class MyBaseService extends Service {
+    protected readonly id: MyIdentifiedService;
 
-    todos: Todo[];
+    constructor(myIdentifier: number) {
+        super();
+
+        this.id = this.require(MyIdentifiedService, myIdentifier);
+    }
+}
+```
+
+```typescript
+import React from "react";
+import { useService } from "servido";
+
+import { MyIdentifiedService, MyBaseService } from "./my-identified-services";
+
+export function MyIdentifiedComponent() {
+    const identifiedServices = {
+        1: useService(MyIdentifiedService, 1),
+        2: useService(MyIdentifiedService, 2),
+    };
+    const baseService = useService(MyBaseService, 1)
+    // `baseService.id === identifiedServices[1]`
+
+    return null;
+}
+```
+
+## Asynchronicity
+
+Many services depend on asynchronicity on some level, for example HTTP-requests. Also, there are situations where services might depend on each other, i.e. circular requirements. In these cases, you can use the `asyncConstructor` method, which is called by `servido` when constructing the service.
+
+```typescript
+import { Service } from "servido";
+
+class ResolvedWhenReady extends Service {
+    protected async asyncConstructor() {
+        await new Promise((resolve) => setTimeout(resolve, 1500));
+    }
+}
+
+class AsyncUtilityService extends Service {
+    protected index: number = 0;
+
+    protected readonly resolvedWhenReady: ResolvedWhenReady;
 
     constructor() {
         super();
 
-        this.auth = this.require(Auth);
+        this.resolvedWhenReady = this.require(ConstructedWhenReady);
     }
 
-    protected async constructorAsync() {
-        // possibly true
-        constructingServices(this.auth)
-
-        await resolveServices(this.auth)
-
-        // false
-        constructingServices(this.auth)
-
-        if (this.auth.authenticated) {
-            this.todos = await fetch("/todos");
-        }
+    async incrementWhenReady(): Promise<number> {
+        await Service.resolve(this.resolvedWhenReady);
+        return this.index++;
     }
-}
-
-```
-
-## Arguments
-
-Say we want a service used specifically for a value with a certain certain identifier. In the following code, every `<TodoItem />` will access the instance with the same defined `todoId` as the passed component prop. Additionally, if the passed argument to `useService` changes, a new instance may or may not be constructed.
-
-```tsx
-import { ServiceAsync, useService, useConstructingServices } from "servido";
-
-class TodoService extends ServiceAsync {
-    current: Todo;
-
-    constructor(readonly todoId: number) {
-        super();
-    }
-
-    protected async constructorAsync() {
-        this.current = await fetch("/todos/" + this.todoId);
-    }
-}
-
-function TodoItem(props: { todoId: number; }) {
-    const todo = useService(TodoService, props.todoId);
-    const constructing = useConstructingServices(todo);
-
-    if (constructing) {
-        return <p>Loading</p>
-    } else if (!todo.current) {
-        return <p>None found</p>
-    }
-
-     return <p>{todo.current.name}</p>
 }
 ```
 
-To be more specific, the arguments generate an identifier which is used to check if arguments are equal. If only one argument is passed, that will serve as the identifier (and be used as a strict equality check), but if more than one a string will be generated using the string constructor. For this reason, do not use objects as arguments.
+## Service data
 
-Additionally, if no argument is passed and there is a currently existing instance of the required service that *has* arguments passed, it will use return that instance. On the other hand, if arguments are passed, the required instance will always be constructed with those same arguments.
-
-## Server-side rendering
-
-When using a service inside a component, a `ServiceContext` is used to manage the memory of constructed instances. If that has not been provided using the `ServiceContextProvider`, the default global context will be used. For server-side rendering, or any other reason that might make you want to localize such things, you can do it like so:
-
-```tsx
-import { ServiceContextProvider, useService } from "servido";
-
-function App() {
-    return (
-        <>
-            <ServiceContextProvider>
-                <A />
-            </ServiceContextProvider>
-
-            <B />
-        </>
-    )
-}
-
-function A() {
-    const auth = useService(Auth);
-}
-
-function B() {
-    const auth = useService(Auth);
-}
-```
-
-In the code above, even though `A` and `B` are rendered simultaneously, the instance of `Auth` used by `A` will not be equal to the one used by `B`, because `A` is provided a different context containing the instances of the constructed services.
-
-## Circular requirements
-
-If a number of services depend on each-other, they must extend `ServiceAsync` and define the requirements inside the `constructorAsync` method, like so:
+An additional and very useful feature of servido are specific methods for retrieving specific data for specific services. This is mostly useful for server side rendering (unless you want to cache data), where data can be transferred from the server to the client and the HTML is returned only when all of the data has been fetched for the rendered components.
 
 ```typescript
-import { ServiceAsync } from "servido";
+import servido, { Service, ServiceExecution } from "servido";
 
-class A extends ServiceAsync {
-    b: B;
-
-    constructorAsync() {
-        this.b = this.require(B);
-    }
+interface Product {
+    id: number;
+    name: string;
 }
 
-class B extends ServiceAsync {
-    a: A;
+class ProductService extends Service {
+    error?: Error;
+    product?: Product;
 
-    constructorAsync() {
-        this.a = this.require(A);
+    constructor(readonly productId: number) {}
+
+    protected get productPromise() Promise<Product> {
+        return servido.resolveData(this);
+    }
+
+    protected getServiceConfig(): ServiceConfig<Product> {
+        return {
+            getData: async (execution) => (
+                fetch<Product>("/product/" + this.productId, execution)
+            ),
+            // ensures that the data is only fetched the first time the service is constructed with the product id
+            cacheData: true,
+            // unless `true`, the service will only be deemed "constructed" once the data has been fetched
+            uncriticalData: false,
+            // handles the returned value unless `getData` throws an error
+            handleData: (product) => {
+                this.product = product;
+            },
+            // handles any error thrown by `getData`
+            handleDataError: (error) => {
+                this.error = error;
+            },
+        };
+    }
+}
+```
+
+## Service context
+
+Service contexts can be provided to a React tree to ensure that separate instances of the used services are constructed. This is mostly useful for server-side rendering, or in some very special situation where you just want separate service instances. Service contexts can be constructed with static params, which can then be used in the tree.
+
+```tsx
+import { ServiceContext, ServiceContextProvider } from "servido";
+
+export default function App(props: React.PropsWithChildren<AppProps>) {
+    const { language, children } = props;
+
+    return (
+        <ServiceContextProvider params={{ language }}>
+            {children}
+        </ServiceContextProvider>
+    );
+}
+
+export interface AppProps {
+    language: string;
+}
+```
+
+## Service executions
+
+Because services depend on component lifecycles and because of the general asynchronous nature of services, executing actions left and right, it becomes useful to know when an *execution* has finished. At a base level, every constructed service gets a unique execution that finishes when the service no longer has any dependents and gets deconstructed and removed from memory. This base execution can then be *nested* to sub-executions, which can either finish on their own *or* finish whenever their parent finish.
+
+For example, the `asyncConstructor` gets passed a unique execution that finalizes once the service is deemed constructed, which is when the promise returned by the `asyncConstructor` has been resolved. If the service is deconstructed before the `asyncConstructor` finishes, though, the passed execution will also be deemed finished.
+
+To know whether an execution is done, it provides the `done: boolean` value as well as the `onDone(listener)` method.
+
+So what is the practical value of these *executions*? Well, for example, one can attach them to HTTP-requests, which then can be cancelled if the execution finishes before the HTTP-request.
+
+It can also be passed to methods that modify state, telling them that the state should not be modified if the execution is done. Of course, this requires the methods to check the `done` property manually, so it requires special implementations.
+
+You may also choose to develop services that do not care about executions, for the simply reason that executions lead to too much confusion. That is reasonable, of course. Executions should be seen as an extra feature for developers that want something a bit more fine-grained.
+
+```typescript
+import { Service, ServiceExecution } from "servido";
+
+class MyService extends Service {
+    protected async asyncConstructor(execution: ServiceExecution) {
+        execution.onDone(() => {
+            console.log("MySevice has been deconstructed!")
+        })
+
+        this.deconstructFns.add(() => {
+        // called before service execution has finished
+            console.log("MySevice is not used anymore!")
+        })
     }
 }
 ```
