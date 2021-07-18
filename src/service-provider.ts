@@ -3,10 +3,10 @@ import { useClearedMemo } from "use-cleared-memo";
 
 import { forgoService } from "./forgo-service";
 import { requireService } from "./require-service";
-import { Service, ServiceClass, ServiceQuery } from "./service";
+import { Service, ServiceConstructor, ServiceQuery } from "./service";
 import { ServiceContext } from "./service-context";
 import { ServiceDependent } from "./service-dependent";
-import { parseQuery } from "./service-util";
+import { parseServiceQuery } from "./service-fns";
 
 /** Allows for providing a specific set of default arguments for a service. */
 export function ServiceProvider<S extends Service>(props: React.PropsWithChildren<ServiceProviderProps<S>>): JSX.Element;
@@ -16,7 +16,7 @@ export function ServiceProvider<S extends Service, A extends any[]>(
 export function ServiceProvider<S extends Service>(props: React.PropsWithChildren<ServiceProviderPropsWithArgs<S, any[]>>) {
     const parentContext = ServiceContext.use();
 
-    const { class: constructor, args } = parseQuery(props.service, props.args);
+    const { constructor, args } = parseServiceQuery(props.service, props.args);
     const id = parentContext.getId(constructor, args);
 
     const { context } = useClearedMemo<Provided<S>>(
@@ -70,7 +70,7 @@ export interface ServiceProviderProps<S extends Service> {
 }
 
 export interface ServiceProviderPropsWithArgs<S extends Service, A extends any[]> {
-    service: ServiceClass<S, A>;
+    service: ServiceConstructor<S, A>;
     args?: A;
     /** If a query for the `proxy` should be redirected to the specified `service`. */
     proxy?: ServiceQuery<S>;

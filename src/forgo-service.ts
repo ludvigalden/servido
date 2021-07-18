@@ -41,7 +41,7 @@ export function forgoService<S extends Service>(props: ForgoServiceProps<S>) {
             }
         }
 
-        clearServiceDependent(service);
+        clearDependent(service);
     }
 
     if (config.timeout !== 0) {
@@ -66,7 +66,7 @@ export interface ForgoServiceProps<S extends Service> {
 }
 
 /** Removes all of the requirements of the `dependent`. If any one of the forgone services has no more dependents, it will be deconstructed and removed from memory. */
-export function clearServiceDependent(dependent: ServiceDependent) {
+export function clearDependent(dependent: ServiceDependent) {
     const requirements = ServiceContext.get(dependent).instance.getRequirements(dependent);
 
     if (requirements) {

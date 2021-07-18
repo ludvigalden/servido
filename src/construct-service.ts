@@ -1,4 +1,4 @@
-import { Service, ServiceClass } from "./service";
+import { Service, ServiceConstructor } from "./service";
 import { ServiceContext } from "./service-context";
 import { hydrateData, parseDataConfig } from "./service-data-util";
 import { ServiceDataExecution, ServiceExecution } from "./service-execution";
@@ -9,19 +9,20 @@ import { executionOf } from "./service-util";
 export function constructService<S extends Service, A extends any[]>(props: ConstructServiceProps<S, A>): S;
 export function constructService<S extends Service>(props: ConstructServiceProps<S, []>): S;
 export function constructService(props: ConstructServiceProps<Service, any[]>) {
-    const hasContext = props.context instanceof ServiceContext && props.context !== ServiceContext.default;
+    const { constructor, context = ServiceContext.default, args } = props;
+    const hasContext = context instanceof ServiceContext && context !== ServiceContext.default;
 
     if (hasContext) {
         // allow for requiring inside the constructor
-        INTERNAL.defineProperty(props.service.prototype, "context", props.context, { configurable: true, enumerable: false });
+        INTERNAL.defineProperty(constructor.prototype, "context", props.context, { configurable: true, enumerable: false });
     }
 
     let service: Service;
 
-    if (props.args && props.args.length) {
-        service = new props.service(...props.args);
+    if (args && args.length) {
+        service = new constructor(...args);
     } else {
-        service = new props.service();
+        service = new constructor();
     }
 
     if (props.id !== undefined) {
@@ -34,7 +35,7 @@ export function constructService(props: ConstructServiceProps<Service, any[]>) {
         // which could happen if the newly constructed service does not have a passed context (see "if (props.context != null"))
         // but according to design, the only way to construct a new service in a service constructor is to require it,
         // and in that case they will share the same context
-        delete props.service.prototype[INTERNAL.property("context")];
+        delete constructor.prototype[INTERNAL.property("context")];
         INTERNAL.defineProperty(service, "context", props.context, { configurable: false, writable: false, enumerable: false });
     }
 
@@ -49,14 +50,14 @@ export function constructService(props: ConstructServiceProps<Service, any[]>) {
     const { config, dataStore } = parseDataConfig(service);
 
     if (process.env.NODE_ENV === "development") {
-        INTERNAL.defineProperty(service, "name", props.service.name, { configurable: false, writable: false, enumerable: false });
+        INTERNAL.defineProperty(service, "name", constructor.name, { configurable: false, writable: false, enumerable: false });
 
-        if (config.getData && !props.service.key) {
+        if (config.getData && !constructor.key) {
             if (!missingKeys) {
                 missingKeys = new Set();
             }
-            if (!missingKeys.has(props.service.name)) {
-                missingKeys.add(props.service.name);
+            if (!missingKeys.has(constructor.name)) {
+                missingKeys.add(constructor.name);
                 const currentSize = missingKeys.size;
                 setTimeout(() => {
                     if (!missingKeys.size || missingKeys.size !== currentSize) {
@@ -85,8 +86,8 @@ export function constructService(props: ConstructServiceProps<Service, any[]>) {
                 }, 500);
             }
         }
-    } else if (props.service.key) {
-        INTERNAL.defineProperty(service, "name", props.service.key, { configurable: false, writable: false, enumerable: false });
+    } else if (constructor.key) {
+        INTERNAL.defineProperty(service, "name", constructor.key, { configurable: false, writable: false, enumerable: false });
     }
 
     function setConstructionPromise() {
@@ -128,7 +129,7 @@ export function constructService(props: ConstructServiceProps<Service, any[]>) {
                     await Promise.resolve();
                     if (constructed && constructed["then"]) {
                         constructed.catch((error) => {
-                            error.message = "Failed constructing service " + (props.service.key || String(service)) + ". " + error.message;
+                            error.message = "Failed constructing service " + (constructor.key || String(service)) + ". " + error.message;
                             reject(error);
                         });
                         constructed.then(resolve);
@@ -141,7 +142,7 @@ export function constructService(props: ConstructServiceProps<Service, any[]>) {
             try {
                 constructed = service["asyncConstructor"](constructorExecution);
             } catch (error) {
-                error.message = "Failed constructing service " + (props.service.key || String(service)) + ". " + error.message;
+                error.message = "Failed constructing service " + (constructor.key || String(service)) + ". " + error.message;
                 throw error;
             }
         }
@@ -214,7 +215,7 @@ let missingKeys: Set<string>;
 
 interface ConstructServiceProps<S extends Service, A extends any[]> {
     /** The service */
-    service: ServiceClass<S, A>;
+    constructor: ServiceConstructor<S, A>;
     context?: ServiceContext;
     args: A;
     id: ServiceIdentifier;

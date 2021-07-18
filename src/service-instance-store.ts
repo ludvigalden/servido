@@ -1,12 +1,12 @@
-import { Service, ServiceClass } from "./service";
+import { Service, ServiceConstructor } from "./service";
 import { ServiceDependent } from "./service-dependent";
 import { Class, ServiceIdentifier } from "./service-types";
 
 /** Contains the currently constructed services, dependents and requirements. */
 export class ServiceInstanceStore {
-    protected readonly constructed = new Map<ServiceClass, Map<ServiceIdentifier, Service>>();
+    protected readonly constructed = new Map<ServiceConstructor, Map<ServiceIdentifier, Service>>();
     protected readonly constructing = new Map<Service, Promise<void>>();
-    protected readonly constructors = new Map<Service, ServiceClass>();
+    protected readonly constructors = new Map<Service, ServiceConstructor>();
     protected readonly clearIds = new Map<Service, symbol>();
     protected readonly dependents = new Map<Service, Set<ServiceDependent>>();
     protected readonly requirements = new Map<ServiceDependent, Set<Service>>();
@@ -134,7 +134,7 @@ export class ServiceInstanceStore {
     }
 
     /** Ensures a map of constructed services for a constructor (does not iterate through parents since instances should always be stored nearest, and only fallback to parents). */
-    ensureLocalConstructedMap(constructor: ServiceClass): Map<ServiceIdentifier, Service> {
+    ensureLocalConstructedMap(constructor: ServiceConstructor): Map<ServiceIdentifier, Service> {
         let constructed = this.constructed.get(constructor);
         if (!constructed) {
             constructed = new Map();
@@ -142,11 +142,11 @@ export class ServiceInstanceStore {
         }
         return constructed;
     }
-    hasConstructed(constructor: ServiceClass, id: ServiceIdentifier): boolean {
+    hasConstructed(constructor: ServiceConstructor, id: ServiceIdentifier): boolean {
         return !!this.find((i) => i.constructed.has(constructor) && i.constructed.get(constructor).has(id));
     }
     /** Gets the nearest constructed instance with the same `id`. If the `id` is undefined, it wil fallback to find the nearest instance. */
-    getConstructed(constructor: ServiceClass, id: ServiceIdentifier): Service | undefined {
+    getConstructed(constructor: ServiceConstructor, id: ServiceIdentifier): Service | undefined {
         let found = this.find((i) => i.constructed.has(constructor) && i.constructed.get(constructor).has(id));
         if (!found && id === undefined) {
             found = this.find((i) => i.constructed.has(constructor));
@@ -158,7 +158,7 @@ export class ServiceInstanceStore {
         }
     }
     /** Deletes the nearest constructed service with a specific id. */
-    deleteConstructed(constructor: ServiceClass, id: ServiceIdentifier) {
+    deleteConstructed(constructor: ServiceConstructor, id: ServiceIdentifier) {
         const found = this.find((i) => i.constructed.has(constructor) && i.constructed.get(constructor).has(id));
         if (!found) {
             return false;
@@ -174,7 +174,7 @@ export class ServiceInstanceStore {
         }
         return deleted;
     }
-    setConstructed(constructor: ServiceClass, id: ServiceIdentifier, service: Service) {
+    setConstructed(constructor: ServiceConstructor, id: ServiceIdentifier, service: Service) {
         this.ensureLocalConstructedMap(constructor).set(id, service);
         this.constructors.set(service, constructor);
     }
@@ -212,10 +212,10 @@ export class ServiceInstanceStore {
         }
         return set;
     }
-    getConstructedSet(constructor: ServiceClass): Set<Service> {
+    getConstructedSet(constructor: ServiceConstructor): Set<Service> {
         return this.getConstructedSetUp(constructor);
     }
-    protected getConstructedIdsUp(constructor: ServiceClass): Set<ServiceIdentifier> {
+    protected getConstructedIdsUp(constructor: ServiceConstructor): Set<ServiceIdentifier> {
         const set = new Set<ServiceIdentifier>();
 
         if (this.constructed.has(constructor)) {
@@ -226,11 +226,11 @@ export class ServiceInstanceStore {
         }
         return set;
     }
-    getConstructedIds(constructor: ServiceClass): Set<ServiceIdentifier> {
+    getConstructedIds(constructor: ServiceConstructor): Set<ServiceIdentifier> {
         return this.getConstructedIdsUp(constructor);
     }
 
-    getConstructor(service: Service): ServiceClass | undefined {
+    getConstructor(service: Service): ServiceConstructor | undefined {
         return this.constructors.get(service);
     }
     deleteConstructor(service: Service): boolean {

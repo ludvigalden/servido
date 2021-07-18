@@ -1,14 +1,14 @@
 import React from "react";
 import { useClearedMemo } from "use-cleared-memo";
 
-import { clearServiceDependent } from "./forgo-service";
+import { clearDependent } from "./forgo-service";
 import { requireService } from "./require-service";
-import { Service, ServiceClass, ServiceQuery, ServiceSource, ServiceType } from "./service";
+import { Service, ServiceConstructor, ServiceQuery, ServiceSource, ServiceType } from "./service";
 import { ServiceConfig } from "./service-config";
 import { ServiceContext } from "./service-context";
 import { ServiceDependent } from "./service-dependent";
 import { ServiceExecution } from "./service-execution";
-import { ModuleThunk, isPromise, isServiceClass, resolveModuleThunk } from "./service-fns";
+import { ModuleThunk, isPromise, isServiceConstructor, parseServiceQuery, resolveModuleThunk } from "./service-fns";
 import { INTERNAL } from "./service-internal";
 import { Class, ServiceIdentifier } from "./service-types";
 
@@ -53,7 +53,7 @@ export function useDependent(name?: string, deps: readonly any[] = []): ServiceD
     const context = ServiceContext.use();
     return useClearedMemo(
         () => new ServiceDependent(name, context),
-        (dependent) => clearServiceDependent(dependent),
+        (dependent) => clearDependent(dependent),
         [context, ...deps],
     );
 }
@@ -130,7 +130,7 @@ export function useHandler<A extends any[], S extends Service, T>(
     return React.useCallback(
         async (...args: A): Promise<T> => {
             const serviceQuery = await ((): Promise<ServiceQuery<S>> => {
-                if (typeof service === "function" && !isServiceClass(service)) {
+                if (typeof service === "function" && !isServiceConstructor(service)) {
                     return asyncServiceQuery((service as any)(...args));
                 } else {
                     return asyncServiceQuery(service);
@@ -141,7 +141,7 @@ export function useHandler<A extends any[], S extends Service, T>(
                 console.error("servido.userHandler: Received undefined query", {
                     serviceQuery,
                     serviceQueryArgument: service,
-                    resolvedServiceArg: typeof service === "function" && !isServiceClass(service) && service(...args),
+                    resolvedServiceArg: typeof service === "function" && !isServiceConstructor(service) && service(...args),
                     handler,
                 });
                 return;
@@ -155,7 +155,7 @@ export function useHandler<A extends any[], S extends Service, T>(
 
             if (!ServiceContext.get(dependent).static) {
                 setTimeout(() => {
-                    clearServiceDependent(dependent);
+                    clearDependent(dependent);
                 }, 1);
             }
 
@@ -175,7 +175,7 @@ export function useResolver<A extends any[]>(
             const resolvedServices: ServiceQuery<Service>[] = await Promise.all(
                 services.map(
                     async (service): Promise<ServiceQuery<Service>> => {
-                        if (typeof service === "function" && !isServiceClass(service)) {
+                        if (typeof service === "function" && !isServiceConstructor(service)) {
                             return asyncServiceQuery((service as any)(...args));
                         } else {
                             return asyncServiceQuery(service);
@@ -192,7 +192,7 @@ export function useResolver<A extends any[]>(
             );
             if (!ServiceContext.get(dependent).static) {
                 setTimeout(() => {
-                    clearServiceDependent(dependent);
+                    clearDependent(dependent);
                 }, 5000);
             }
         },
@@ -215,7 +215,7 @@ export function useExecutionResolver<A extends any[]>(
             const resolvedServices: ServiceQuery<Service>[] = await Promise.all(
                 services.map(
                     async (service): Promise<ServiceQuery<Service>> => {
-                        if (typeof service === "function" && !isServiceClass(service)) {
+                        if (typeof service === "function" && !isServiceConstructor(service)) {
                             return asyncServiceQuery((service as any)(...args));
                         } else {
                             return asyncServiceQuery(service);
@@ -229,7 +229,7 @@ export function useExecutionResolver<A extends any[]>(
             gottenExecution.onDone(() => {
                 if (!ServiceContext.get(dependent).static) {
                     setTimeout(() => {
-                        clearServiceDependent(dependent);
+                        clearDependent(dependent);
                     }, 1000);
                 }
             });
@@ -247,39 +247,12 @@ export function useExecutionResolver<A extends any[]>(
             // if (!ServiceContext.get(dependent).static) {
             //     setTimeout(() => {
             //         console.log("servido.useExecutionResolver: Timeout done, clearing dependent.");
-            //         clearServiceDependent(dependent);
+            //         clearDependent(dependent);
             //     }, 1000);
             // }
         },
         [dependent, ...services],
     );
-}
-
-export function parseQuery<S extends Service, A extends any[]>(
-    service: ServiceQuery<S, A>,
-    args?: A,
-): { class: ServiceClass<S, A>; service?: S; args?: A } {
-    if (!service) {
-        return { class: undefined, args };
-    }
-    if (Array.isArray(service)) {
-        args = service.slice(1) as any;
-        service = service[0] as any;
-    }
-    if (isServiceClass(service)) {
-        return { class: service as ServiceClass<S, A>, args };
-    } else if (service instanceof Service) {
-        const prototype = Object.getPrototypeOf(service);
-        return { class: prototype.constructor || prototype, service, args };
-    } else if (service["getService"]) {
-        return parseQuery<S, A>(service["getService"](...((args || []) as A)), args);
-    } else if (service["service"]) {
-        return parseQuery<S, A>(service["service"], args);
-    } else if (typeof service === "function") {
-        return parseQuery<S, A>((service as any)(...((args || []) as A)), args);
-    }
-    console.error("Unable to resolve class for service ", service);
-    return { class: Service as any };
 }
 
 /** Returns whether the `query` matches the `matchesQuery`. */
@@ -288,16 +261,16 @@ export function doesQueryMatch(
     query: ServiceQuery<Service>,
     matchesQuery: ServiceQuery<Service>,
 ): boolean {
-    const parsedQuery = parseQuery(query);
-    const parsedMatchesQuery = parseQuery(matchesQuery);
-    if (parsedQuery.class !== parsedMatchesQuery.class) {
+    const parsedQuery = parseServiceQuery(query);
+    const parsedMatchesQuery = parseServiceQuery(matchesQuery);
+    if (parsedQuery.constructor !== parsedMatchesQuery.constructor) {
         return false;
     }
     const context = serviceOrContext instanceof ServiceContext ? serviceOrContext : contextOf(serviceOrContext);
-    const queryId = parsedQuery.service ? identifierOf(parsedQuery.service) : context.getId(parsedQuery.class, parsedQuery.args);
-    const matchesQueryId = parsedMatchesQuery.service
-        ? identifierOf(parsedMatchesQuery.service)
-        : context.getId(parsedMatchesQuery.class, parsedMatchesQuery.args);
+    const queryId = parsedQuery.instance ? identifierOf(parsedQuery.instance) : context.getId(parsedQuery.constructor, parsedQuery.args);
+    const matchesQueryId = parsedMatchesQuery.instance
+        ? identifierOf(parsedMatchesQuery.instance)
+        : context.getId(parsedMatchesQuery.constructor, parsedMatchesQuery.args);
     if (queryId === matchesQueryId) {
         return true;
     } else if (queryId === undefined) {
@@ -326,11 +299,11 @@ export function identifierFor(
     args?: any[],
 ): ServiceIdentifier | undefined {
     const context = serviceOrContext instanceof ServiceContext ? serviceOrContext : contextOf(serviceOrContext);
-    const parsedQuery = parseQuery(query, args);
-    if (parsedQuery.service) {
-        return identifierOf(parsedQuery.service);
-    } else if (parsedQuery.class) {
-        return context.getId(parsedQuery.class, parsedQuery.args);
+    const parsedQuery = parseServiceQuery(query, args);
+    if (parsedQuery.instance) {
+        return identifierOf(parsedQuery.instance);
+    } else if (parsedQuery.constructor) {
+        return context.getId(parsedQuery.constructor, parsedQuery.args);
     }
     return undefined;
 }
@@ -351,12 +324,12 @@ export function hasInstance<A extends any[]>(contextOf: ServiceDependent, query:
 export function hasInstance(serviceOrContext: ServiceDependent | ServiceContext, query: ServiceQuery<Service>, args?: any[]): boolean {
     const context = serviceOrContext instanceof ServiceContext ? serviceOrContext : contextOf(serviceOrContext);
     const instances = context.instance;
-    const parsedHas = parseQuery(query, args);
-    if (parsedHas.service) {
-        return instances.has(parsedHas.service);
-    } else if (parsedHas.class) {
-        const id = context.getId(parsedHas.class, parsedHas.args);
-        return instances.hasConstructed(parsedHas.class, id);
+    const parsedHas = parseServiceQuery(query, args);
+    if (parsedHas.instance) {
+        return instances.has(parsedHas.instance);
+    } else if (parsedHas.constructor) {
+        const id = context.getId(parsedHas.constructor, parsedHas.args);
+        return instances.hasConstructed(parsedHas.constructor, id);
     }
     return false;
 }
@@ -447,7 +420,7 @@ function parseHandle(
             });
         }
     }
-    execution.onDone(() => clearServiceDependent(dependent));
+    execution.onDone(() => clearDependent(dependent));
     return {
         context,
         execution,
@@ -459,7 +432,7 @@ function parseHandle(
 
 export function isQuery<T extends Service, A extends any[]>(query: any): query is ServiceQuery<T, A> {
     try {
-        parseQuery(query);
+        parseServiceQuery(query);
         return true;
     } catch (_) {
         return false;

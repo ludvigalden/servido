@@ -1,6 +1,6 @@
 import { useClearedMemo } from "use-cleared-memo";
 
-import { clearServiceDependent, forgoService } from "./forgo-service";
+import { clearDependent, forgoService } from "./forgo-service";
 import { requireService } from "./require-service";
 import { Service, ServiceQuery } from "./service";
 import { ServiceDependent } from "./service-dependent";
@@ -24,7 +24,7 @@ export class ServiceAgent extends ServiceDependent {
                 dependent,
             );
         } else {
-            execution.onDone(() => clearServiceDependent(this));
+            execution.onDone(() => clearDependent(this));
         }
         super(name, context, execution);
     }
@@ -57,7 +57,7 @@ export class ServiceAgent extends ServiceDependent {
 export function useAgent(dependent: ServiceDependent = useDependent(), deps: readonly any[] = []): ServiceAgent {
     return useClearedMemo(
         () => new ServiceAgent(dependent),
-        (agent) => clearServiceDependent(agent),
+        (agent) => clearDependent(agent),
         [dependent, ...deps],
     );
 }

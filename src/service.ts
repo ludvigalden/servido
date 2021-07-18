@@ -1,7 +1,7 @@
 import { ServiceConfig } from "./service-config";
 import { ServiceDependent } from "./service-dependent";
 import { ServiceExecution } from "./service-execution";
-import { serviceClassProperty } from "./service-fns";
+import { ServiceConstructorProperty } from "./service-fns";
 import { hash } from "./service-identifier";
 import { INTERNAL } from "./service-internal";
 import { Class, ServiceIdentifier } from "./service-types";
@@ -71,62 +71,9 @@ export class Service extends ServiceDependent {
     }
 }
 
-Object.defineProperty(Service, serviceClassProperty, { value: true, writable: false, enumerable: false, configurable: false });
+Object.defineProperty(Service, ServiceConstructorProperty, { value: true, writable: false, enumerable: false, configurable: false });
 
-/** A utility for defining a set of service depencencies, which is useful for knowing when a part of an app is loaded. */
-export class ServiceDependency extends Service {
-    private dependencies: Set<Service>;
-
-    constructor(dependencies?: ServiceClass<Service, []>[]) {
-        super();
-
-        if (dependencies) {
-            this.dependencies = new Set(dependencies.filter(Boolean).map((dep) => this.require(dep)));
-        } else {
-            this.dependencies = new Set();
-        }
-    }
-
-    /** Add a dependency to be included in this dependency. */
-    protected add(dependency: ServiceClass<Service, []>): void;
-    protected add<A extends any[]>(dependency: ServiceClass<Service, A>, ...args: A): void;
-    protected add(dependency: Service): void;
-    protected add(dependency: Service | ServiceClass, ...args: any[]): void {
-        this.dependencies.add(this.require(dependency, ...args));
-    }
-
-    protected async asyncConstructor() {
-        await Service.resolve(...Array.from(this.dependencies));
-    }
-
-    static from(dependencies: ServiceClass<Service, []>[]): Class<ServiceDependency, []>;
-    static from(dependencies: ServiceClass<Service, []>[], require: (require: Service["require"]) => void): Class<ServiceDependency, []>;
-    static from(require: (require: Service["require"]) => void): Class<ServiceDependency, []>;
-    static from(...args: any[]): Class<ServiceDependency, []> {
-        let dependencies: ServiceClass<Service, []>[], require: (require: Service["require"]) => void;
-        if (args.length === 1) {
-            if (typeof args[0] === "function") {
-                require = args[0];
-            } else {
-                dependencies = args[0].filter(Boolean);
-            }
-        } else {
-            dependencies = args[0].filter(Boolean);
-            require = args[1];
-        }
-
-        return class AnonymousServiceDependency extends ServiceDependency {
-            constructor() {
-                super(dependencies);
-                if (require) {
-                    require(this.require.bind(this));
-                }
-            }
-        };
-    }
-}
-
-export interface ServiceClass<S extends Service = Service, A extends any[] = any[]> extends Class<S, A> {
+export interface ServiceConstructor<S extends Service = Service, A extends any[] = any[]> extends Class<S, A> {
     /** Generate a `ServiceIdentifier` for a set of passed arguments */
     identifier?(...args: A): ServiceIdentifier;
     /** The amount of time in ms to wait until finally deconstructing the service. Defaults to `1`, meaning a synchronous switch of dependents will not
@@ -143,14 +90,8 @@ export type ServiceQuery<S extends Service, A extends any[] = any[], QA extends 
     | [service: ServiceType<S, QA>, ...arguments: QA]
     | [service: Class<S, QA>, ...arguments: QA]
     | [service: ServiceSource<S, QA>, ...arguments: QA];
-// | ServiceThunk<S, A>
-// | [ServiceThunk<S, QA>, ...QA];
 
 export type ServiceType<S extends Service, A extends any[] = any[]> = Class<S, A> | ServiceSource<S, A>;
-
-export interface ServiceThunk<S extends Service, A extends any[] = any[]> {
-    (...args: A): ServiceQuery<S, A>;
-}
 
 export interface ServiceSource<S extends Service = Service, A extends any[] = any[]> {
     getService?(...args: A): ServiceQuery<S, A>;

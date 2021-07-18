@@ -1,5 +1,5 @@
 import servido, { Service, ServiceContext, ServiceDependent } from "../src";
-import { isServiceClass } from "../src/service-fns";
+import { isServiceConstructor } from "../src/service-fns";
 
 describe("service", () => {
     const context = servido.Context.get();
@@ -17,9 +17,9 @@ describe("service", () => {
         expect(newServiceA === serviceA).toEqual(false);
     });
 
-    it("checks is-class correctly", () => {
-        expect(isServiceClass(ServiceA)).toEqual(true);
-        expect(isServiceClass(serviceA)).toEqual(false);
+    it("checks isServiceConstructor correctly", () => {
+        expect(isServiceConstructor(ServiceA)).toEqual(true);
+        expect(isServiceConstructor(serviceA)).toEqual(false);
     });
 
     class ServiceA extends Service {

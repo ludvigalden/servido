@@ -6,7 +6,8 @@ import { requireService } from "./require-service";
 import { Service, ServiceQuery } from "./service";
 import { ServiceContext } from "./service-context";
 import { ServiceDependent } from "./service-dependent";
-import { isConstructing, parseQuery } from "./service-util";
+import { parseServiceQuery } from "./service-fns";
+import { isConstructing } from "./service-util";
 
 /** If the service accepts arguments, those can be passed as additional arguments to the hook. Whenever the passed service or arguments change, a new instance may or may not be constructed.
  * If an instance of the service has been provided by a parent using `ServiceProvider`, that instance will be preferred unless there is a mismatch of arguments. */
@@ -15,7 +16,7 @@ export function useService<S extends Service, QA extends any[]>(service: Service
 export function useService<S extends Service, A extends any[], QA extends any[]>(service: ServiceQuery<S, A, QA>, ...arguments_: A): S;
 export function useService<S extends Service>(service: ServiceQuery<S>, ...passedArgs: any[]) {
     const context = ServiceContext.use();
-    const { args, class: constructor, service: instance } = parseQuery(context.parseQuery(service), passedArgs);
+    const { args, constructor, instance } = parseServiceQuery(context.parseQuery(service), passedArgs);
     const id = context.getId(constructor, args);
 
     return useClearedMemo(

@@ -1,6 +1,6 @@
 import React from "react";
 
-import { Service, ServiceClass, ServiceQuery } from "./service";
+import { Service, ServiceConstructor, ServiceQuery } from "./service";
 import { ServiceDataStore } from "./service-data-store";
 import { resolveData } from "./service-data-util";
 import { ServiceDependent } from "./service-dependent";
@@ -11,13 +11,12 @@ import { doesQueryMatch } from "./service-util";
 
 import { IncomingMessage } from "http";
 
-let i = 0;
 /** Contains the currently constructed services, dependents and requirements. */
 export class ServiceContext {
     private readonly dependents: Map<Service, Set<ServiceDependent>>;
     private readonly requirements: Map<ServiceDependent, Set<Service>>;
 
-    private defaultIds?: Map<ServiceClass, ServiceIdentifier>;
+    private defaultIds?: Map<ServiceConstructor, ServiceIdentifier>;
     private proxy?: Map<ServiceQuery<Service>, ServiceQuery<Service>>;
 
     private _store?: ServiceStore;
@@ -25,7 +24,7 @@ export class ServiceContext {
     private _staticData?: boolean;
     private _nested?: Map<ServiceIdentifier, ServiceContext>;
 
-    readonly key = String(i++);
+    readonly key = String(keyIndex++);
 
     readonly static: boolean;
     readonly parent?: ServiceContext;
@@ -64,7 +63,7 @@ export class ServiceContext {
         }
     }
 
-    getId<A extends any[]>(constructor: ServiceClass<Service, A>, args: A): ServiceIdentifier {
+    getId<A extends any[]>(constructor: ServiceConstructor<Service, A>, args: A): ServiceIdentifier {
         if (args && args.length && !args.every((arg) => arg === undefined)) {
             if (!constructor) {
                 return Service.identifier(...args);
@@ -97,7 +96,7 @@ export class ServiceContext {
         return parsedQuery;
     }
 
-    setDefaultId(constructor: ServiceClass, id: ServiceIdentifier) {
+    setDefaultId(constructor: ServiceConstructor, id: ServiceIdentifier) {
         if (!this.defaultIds) {
             this.defaultIds = new Map();
         }
@@ -121,9 +120,9 @@ export class ServiceContext {
         return this;
     }
 
-    protected getDefaultId<A extends any[]>(constructor: ServiceClass<Service, A>): ServiceIdentifier | undefined {
-        if (this.defaultIds && this.defaultIds.has(constructor as ServiceClass)) {
-            return this.defaultIds.get(constructor as ServiceClass);
+    protected getDefaultId<A extends any[]>(constructor: ServiceConstructor<Service, A>): ServiceIdentifier | undefined {
+        if (this.defaultIds && this.defaultIds.has(constructor as ServiceConstructor)) {
+            return this.defaultIds.get(constructor as ServiceConstructor);
         } else if (this.parent) {
             return this.parent.getDefaultId(constructor);
         }
@@ -452,6 +451,8 @@ export class ServiceContext {
         return this.reactContext.Consumer;
     }
 }
+
+let keyIndex = 0;
 
 ServiceContext.default = new ServiceContext();
 ServiceContext.reactContext = React.createContext(ServiceContext.default);

@@ -32,7 +32,7 @@
 	],
 	"scripts": {
 		"start": "cross-env NODE_ENV=development tsdx watch --verbose",
-		"build": "cross-env NODE_ENV=production tsdx build --format=cjs,esm,umd --transpileOnly",
+		"build": "cross-env NODE_ENV=production tsdx build",
 		"test": "tsdx test",
 		"lint": "tsdx lint",
 		"precommit": "lint-staged",

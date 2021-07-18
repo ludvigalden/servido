@@ -1,4 +1,4 @@
-import { clearServiceDependent, forgoService } from "./forgo-service";
+import { clearDependent, forgoService } from "./forgo-service";
 import { requireService } from "./require-service";
 import { Service } from "./service";
 import { useAgent } from "./service-agent";
@@ -36,7 +36,7 @@ class servido {
     use: typeof useService = useService;
     require: typeof requireService = requireService;
     forgo: typeof forgoService = forgoService;
-    clearDependent: typeof clearServiceDependent = clearServiceDependent;
+    clearDependent: typeof clearDependent = clearDependent;
     useContext: typeof ServiceContext.use = ServiceContext.use.bind(ServiceContext);
     resolve: typeof Service.resolve = Service.resolve;
     /** Generate a `ServiceIdentifier` for a set of passed arguments. */

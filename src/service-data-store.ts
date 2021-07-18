@@ -1,8 +1,8 @@
 import { Service } from "./service";
 import { ServiceDataExecution, ServiceExecution } from "./service-execution";
+import { parseServiceQuery } from "./service-fns";
 import { INTERNAL } from "./service-internal";
 import { Class, ServiceData } from "./service-types";
-import { parseQuery } from "./service-util";
 
 export class ServiceDataStore {
     private readonly children: Set<ServiceDataStore>;
@@ -412,8 +412,8 @@ export class ServiceDataStore {
         if (typeof keyThunk === "string") {
             return keyThunk;
         }
-        const serviceClass = parseQuery(keyThunk).class;
-        return serviceClass.key || serviceClass.name;
+        const constructor = parseServiceQuery(keyThunk).constructor;
+        return constructor.key || constructor.name;
     }
 
     static getId(service: Service): string {

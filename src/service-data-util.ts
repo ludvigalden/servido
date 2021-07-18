@@ -43,7 +43,6 @@ export function hydrateData<S extends Service>(
     }
 
     dataStore.setExecution(service, execution);
-    const key = String(i++);
 
     function setData() {
         const dataOrPromise: PromiseLike<DataOf<S>> | DataOf<S> = config.getData(execution) as any;
@@ -136,8 +135,6 @@ export function hydrateData<S extends Service>(
         return dataStore.getEntry(service).data as DataOf<S>;
     }
 }
-
-let i = 1;
 
 /** Resolves the data for a service. If it has already been gotten, the data will be returned synchronously. */
 export function resolveData<S extends Service>(service: S): PromiseLike<DataOf<S>> | DataOf<S> {

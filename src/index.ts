@@ -1,4 +1,4 @@
-import { clearServiceDependent, forgoService } from "./forgo-service";
+import { clearDependent, forgoService } from "./forgo-service";
 import { CircularDependencyError, requireService } from "./require-service";
 import { ServiceAgent, useAgent } from "./service-agent";
 import { ServiceContext } from "./service-context";
@@ -16,7 +16,7 @@ export { ServiceDataStore };
 export { ServiceDependent };
 export { ServiceProvider };
 export { requireService, CircularDependencyError };
-export { forgoService, clearServiceDependent };
+export { forgoService, clearDependent };
 export { ServiceExecution, ServiceExecutionSlot };
 export * from "./service";
 export * from "./service-config";

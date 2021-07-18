@@ -1,18 +1,19 @@
+import { Service, ServiceConstructor, ServiceQuery } from "./service";
 import { Class } from "./service-types";
 
 /** Determines whether a value is a service class. It can literally be any value, including a function (which would be interpreted as a class
- * in production builds, since they can be constructed like new function() without ES6 features). The `Service` class has the `serviceClassProperty`
+ * in production builds, since they can be constructed like new function() without ES6 features). The `Service` class has the `ServiceConstructorProperty`
  * defined, which this function uses to determine if the `obj` is an extension of `Service`. */
-export function isServiceClass<T, A extends any[]>(obj: any): obj is Class<T, A> {
+export function isServiceConstructor<T, A extends any[]>(obj: any): obj is Class<T, A> {
     if (typeof obj === "function") {
-        return !!obj[serviceClassProperty];
+        return !!obj[ServiceConstructorProperty];
     } else {
         return false;
     }
 }
 
-/** Used in `isServiceClass`, and is intended to be set to a truthy value in the `Service` constructor. */
-export const serviceClassProperty = "__service__";
+/** Used in `isServiceConstructor`, and is intended to be set to a truthy value in the `Service` constructor. */
+export const ServiceConstructorProperty = "__service__";
 
 export function isPromise(v: any): v is Promise<any> {
     return v && typeof v["then"] === "function";
@@ -52,4 +53,31 @@ interface SingleExportModule<T> {
 
 interface DefaultModule<T> {
     default: T;
+}
+
+export function parseServiceQuery<S extends Service, A extends any[]>(
+    service: ServiceQuery<S, A>,
+    args?: A,
+): { constructor: ServiceConstructor<S, A>; instance?: S; args?: A } {
+    if (!service) {
+        return { constructor: undefined, args };
+    }
+    if (Array.isArray(service)) {
+        args = service.slice(1) as any;
+        service = service[0] as any;
+    }
+    if (isServiceConstructor(service)) {
+        return { constructor: service as ServiceConstructor<S, A>, args };
+    } else if (service instanceof Service) {
+        const prototype = Object.getPrototypeOf(service);
+        return { constructor: prototype.constructor || prototype, instance: service, args };
+    } else if (service["getService"]) {
+        return parseServiceQuery<S, A>(service["getService"](...((args || []) as A)), args);
+    } else if (service["service"]) {
+        return parseServiceQuery<S, A>(service["service"], args);
+    } else if (typeof service === "function") {
+        return parseServiceQuery<S, A>((service as any)(...((args || []) as A)), args);
+    }
+    console.error("Unable to resolve class for service ", service);
+    return { constructor: Service as any };
 }

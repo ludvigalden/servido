@@ -2,9 +2,9 @@ import { constructService } from "./construct-service";
 import { Service, ServiceQuery } from "./service";
 import { ServiceContext } from "./service-context";
 import { ServiceDependent } from "./service-dependent";
+import { parseServiceQuery } from "./service-fns";
 import { INTERNAL } from "./service-internal";
 import { ServiceIdentifier } from "./service-types";
-import { parseQuery } from "./service-util";
 
 /** Create a dependency of the `service`. If the service accepts arguments, those can be passed using the `args` prop. If no arguments are passed or if there
  * has already been a constructed instance with the same identifiable arguments, that will be preferred over constructing a new instance. */
@@ -13,30 +13,27 @@ export function requireService<S extends Service>(props: RequireServiceProps<S, 
 export function requireService(props: RequireServiceProps<Service, any[]>) {
     const context = ServiceContext.get(props.dependent);
     let id: ServiceIdentifier = props.id;
-    const { service: serviceInstance, class: service, args } = parseQuery(
-        context ? context.parseQuery(props.service) : props.service,
-        props.args,
-    );
-    if (serviceInstance) {
+    const { instance, constructor, args } = parseServiceQuery(context ? context.parseQuery(props.service) : props.service, props.args);
+    if (instance) {
         // the service was passed as an instance, assume params are OK
-        return serviceInstance;
-    } else if (!service) {
+        return instance;
+    } else if (!constructor) {
         console.warn("Attempted to require undefined service:", props);
         return undefined;
     }
 
     if (id === undefined) {
-        id = context.getId(service, args);
+        id = context.getId(constructor, args);
     }
 
-    let constructed: Service = context.instance.getConstructed(service, id);
+    let constructed: Service = context.instance.getConstructed(constructor, id);
 
     if (!constructed) {
         try {
-            constructed = constructService({ service, context, args, id });
-            context.instance.setConstructed(service, id, constructed);
+            constructed = constructService({ constructor, context, args, id });
+            context.instance.setConstructed(constructor, id, constructed);
         } catch (error) {
-            context.instance.deleteConstructed(service, id);
+            context.instance.deleteConstructed(constructor, id);
             context.deleteRequirement(props.dependent, constructed); // to ensure the set of requirements is deleted
 
             throw error;
